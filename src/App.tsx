@@ -519,50 +519,33 @@ function MenuCard({
 
   return (
     <article
-      className={`group overflow-hidden rounded-[24px] border bg-surface ${
-        available
-          ? "border-line/70 shadow-card transition-transform duration-200 hover:-translate-y-0.5 hover:border-action/40"
-          : "border-line/40 opacity-65"
+      className={`flex min-h-[180px] items-stretch gap-3 rounded-[20px] border bg-surface p-3 ${
+        available ? "border-line/70 shadow-card" : "border-line/40 opacity-60"
       }`}
     >
-      <div className="relative aspect-[16/11] w-full shrink-0 overflow-hidden bg-surface-raised">
-        <FoodImage
-          alt={item.imageAlt}
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-          src={item.image}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-black/10" />
-        <div className="absolute inset-x-3 top-3 flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           {item.badge ? <Badge>{item.badge}</Badge> : null}
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[11px] font-medium text-ink-inverse">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-faint">
             <Clock3 aria-hidden="true" size={12} />
             {item.time}
           </span>
           {item.spicy ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-[11px] font-medium text-action">
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-action">
               <Flame aria-hidden="true" size={12} />
               Picante
             </span>
           ) : null}
         </div>
-        {!available ? (
-          <div className="absolute inset-0 grid place-items-center bg-black/50">
-            <span className="rounded-full bg-black/65 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-              Sem estoque
-            </span>
-          </div>
-        ) : null}
-      </div>
 
-      <div className="min-w-0 space-y-3 p-4">
         <h3 className="font-display text-xl font-bold leading-tight text-ink">
           {item.name}
         </h3>
-        <p className="line-clamp-3 text-sm leading-6 text-ink-muted">
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-ink-muted">
           {item.shortDescription}
         </p>
 
-        <div className="flex items-end justify-between gap-3 border-t border-line/60 pt-3">
+        <div className="mt-4 flex items-end justify-between gap-3">
           <span className="text-base font-bold text-action tabular-nums">
             {formatPrice(item.price)}
           </span>
@@ -575,6 +558,21 @@ function MenuCard({
             {available ? "Adicionar" : "Esgotado"}
           </Button>
         </div>
+      </div>
+
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[18px] bg-surface-raised sm:h-32 sm:w-32">
+        <FoodImage
+          alt={item.imageAlt}
+          className="size-full object-cover"
+          src={item.image}
+        />
+        {!available ? (
+          <div className="absolute inset-0 grid place-items-center bg-black/45">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+              Sem estoque
+            </span>
+          </div>
+        ) : null}
       </div>
     </article>
   )
@@ -741,13 +739,8 @@ function App() {
             <span className="grid size-10 place-items-center rounded-full bg-action font-display text-sm font-black text-ink-inverse shadow-card">
               47
             </span>
-            <span>
-              <span className="block font-display text-lg font-black tracking-[0.06em] text-ink">
-                BRASA 47
-              </span>
-              <span className="hidden text-[11px] font-medium tracking-[0.08em] text-ink-faint sm:block">
-                CARDÁPIO DE RUA
-              </span>
+            <span className="font-display text-lg font-black tracking-[0.06em] text-ink">
+              BRASA 47
             </span>
           </button>
 
