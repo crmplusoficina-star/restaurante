@@ -351,15 +351,15 @@ function Button({
   variant?: "primary" | "secondary" | "ghost"
 }) {
   const styles = {
-    primary: "bg-action text-ink-inverse hover:bg-action-strong",
+    primary: "bg-action text-ink-inverse shadow-card hover:bg-action-strong",
     secondary:
-      "border border-line bg-surface text-ink hover:border-action hover:text-action",
-    ghost: "border border-line bg-transparent text-ink-muted hover:text-ink",
+      "border border-line/70 bg-surface text-ink hover:border-action/70 hover:text-action",
+    ghost: "border border-line/70 bg-transparent text-ink-muted hover:border-line hover:text-ink",
   }
 
   return (
     <button
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}
+      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}
       {...props}
     >
       {children}
@@ -380,7 +380,7 @@ function IconButton({
     <button
       aria-label={label}
       title={label}
-      className={`inline-flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition-colors hover:border-action hover:text-action disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex size-11 items-center justify-center rounded-full border border-line/70 bg-surface text-ink transition-colors hover:border-action/70 hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -520,7 +520,7 @@ function MenuCard({
   return (
     <article
       className={`flex min-h-[180px] items-stretch gap-3 rounded-[20px] border bg-surface p-3 ${
-        available ? "border-line" : "border-line opacity-60"
+        available ? "border-line/70 shadow-card" : "border-line/40 opacity-60"
       }`}
     >
       <div className="min-w-0 flex-1">
@@ -729,25 +729,20 @@ function App() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-line/70 bg-canvas/92 backdrop-blur-md">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <button
             aria-label="Voltar ao topo"
             className="flex items-center gap-3 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-action"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            <span className="grid size-10 place-items-center rounded-full bg-action font-display text-sm font-black text-ink-inverse">
+            <span className="grid size-10 place-items-center rounded-full bg-action font-display text-sm font-black text-ink-inverse shadow-card">
               47
             </span>
             <span className="font-display text-lg font-black tracking-[0.06em] text-ink">
               BRASA 47
             </span>
           </button>
-
-          <div className="hidden items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1.5 text-[11px] font-medium text-ink-muted sm:flex">
-            <span className="size-2 rounded-full bg-status" />
-            Aberto agora
-          </div>
 
           <button
             aria-label={`Abrir carrinho com ${cartCount} itens`}
@@ -766,29 +761,30 @@ function App() {
       </header>
 
       <main className="mx-auto max-w-screen-xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
-        <section className="space-y-4">
-          <div className="rounded-[22px] border border-line bg-surface p-4">
+        <section className="space-y-5">
+          <div className="relative overflow-hidden rounded-[28px] border border-line/70 bg-surface p-5 shadow-card sm:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(216,102,45,0.22),transparent_45%)]" />
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="relative">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
                   Cardápio
                 </p>
-                <h1 className="mt-1 font-display text-2xl font-black text-ink">
+                <h1 className="mt-1 font-display text-2xl font-black text-ink sm:text-3xl">
                   Smash burgers feitos na hora
                 </h1>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-raised px-2.5 py-1.5">
+            <div className="relative mt-5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
                 <Clock3 aria-hidden="true" size={13} className="text-action" />
                 20–30 min
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-raised px-2.5 py-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
                 <Store aria-hidden="true" size={13} className="text-action" />
                 Retirada no balcão
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-raised px-2.5 py-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
                 <Star aria-hidden="true" size={13} className="fill-action text-action" />
                 4,9
               </span>
@@ -797,7 +793,7 @@ function App() {
 
           <div
             aria-label="Categorias do cardápio"
-            className="sticky top-[73px] z-30 -mx-4 overflow-x-auto border-y border-line bg-canvas/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-[18px] lg:border lg:px-2"
+            className="sticky top-[74px] z-30 -mx-4 overflow-x-auto border-y border-line/70 bg-canvas/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-[20px] lg:border lg:bg-surface/90 lg:px-3"
             role="tablist"
           >
             <div className="flex min-w-max gap-2">
@@ -806,8 +802,10 @@ function App() {
                 return (
                   <button
                     aria-selected={active}
-                    className={`min-h-11 rounded-full px-4 text-sm font-semibold transition-colors ${
-                      active ? "bg-action text-ink-inverse" : "text-ink-muted hover:bg-surface-raised hover:text-ink"
+                    className={`min-h-11 rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 ${
+                      active
+                        ? "bg-action text-ink-inverse shadow-card"
+                        : "text-ink-muted hover:bg-surface-raised hover:text-ink"
                     }`}
                     key={category.id}
                     onClick={() => setActiveCategory(category.id)}

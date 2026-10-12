@@ -1,19 +1,25 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-display: "Bricolage Grotesque", sans-serif;
-  --color-brand-bg: #101010;
-  --color-brand-surface: #1a1a1a;
-  --color-brand-surface-alt: #232323;
-  --color-brand-border: rgba(255, 255, 255, 0.12);
-  --color-brand-text: #f8f0ec;
-  --color-brand-muted: #c7c0bb;
-  --color-brand-action: #d8662d;
-  --color-brand-action-strong: #c75a22;
-  --color-brand-success: #2d9b62;
-  --color-brand-shadow: rgba(0, 0, 0, 0.4);
+  --color-canvas: #101113;
+  --color-surface: #191b1f;
+  --color-surface-raised: #23262d;
+  --color-line: rgba(255, 255, 255, 0.13);
+  --color-ink: #f4eee9;
+  --color-ink-muted: #c8bfb7;
+  --color-ink-faint: #948a82;
+  --color-ink-inverse: #fff6ef;
+  --color-action: #de6a2f;
+  --color-action-strong: #c95e28;
+  --color-action-subtle: rgba(222, 106, 47, 0.18);
+  --color-status: #2fa86b;
+  --color-status-subtle: rgba(47, 168, 107, 0.16);
+  --color-backdrop: rgba(4, 5, 7, 0.72);
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
+  --shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.5);
   --radius-card: 1.25rem;
   --radius-panel: 1.5rem;
 }
@@ -21,8 +27,8 @@
 :root {
   color-scheme: dark;
   font-family: "Inter", sans-serif;
-  background: var(--color-brand-bg);
-  color: var(--color-brand-text);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -32,7 +38,7 @@
 }
 
 html {
-  background: var(--color-brand-bg);
+  background: var(--color-canvas);
   scroll-behavior: smooth;
 }
 
@@ -40,9 +46,10 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(216, 102, 45, 0.18), transparent 28%),
-    var(--color-brand-bg);
-  color: var(--color-brand-text);
+    radial-gradient(circle at 85% 0%, rgba(222, 106, 47, 0.2), transparent 30%),
+    radial-gradient(circle at 0% 100%, rgba(255, 255, 255, 0.05), transparent 35%),
+    var(--color-canvas);
+  color: var(--color-ink);
   font-family: "Inter", sans-serif;
 }
 
@@ -64,7 +71,7 @@ select {
 
 ::selection {
   background: rgba(216, 102, 45, 0.35);
-  color: var(--color-brand-text);
+  color: var(--color-ink);
 }
 
 ::-webkit-scrollbar {
