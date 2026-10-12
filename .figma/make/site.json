@@ -1,0 +1,13 @@
+{
+  "title": "BRASA 47",
+  "description": "Cardápio digital urbano em pt-BR para a hamburgueria fictícia BRASA 47.",
+  "locale": "pt-BR",
+  "theme": {
+    "colorScheme": "dark",
+    "motionPreference": "reduce"
+  },
+  "robots": {
+    "index": false,
+    "follow": false
+  }
+}
