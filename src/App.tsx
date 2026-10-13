@@ -479,6 +479,7 @@ function App() {
   const serviceFee = Math.round(tabSubtotal * menu.servicePercent / 100)
   const tabTotal = tabSubtotal + serviceFee
   const canOrder = Boolean(backend && !connectionError && menu.orderingEnabled && comanda.sessionId && comanda.status === "open")
+  const orderBlockReason = connectionError || (loading ? "Carregando a mesa…" : !backend ? "Pedidos indisponíveis no momento." : !qrToken ? "Para enviar o pedido, abra o QR code da sua mesa." : !comanda.sessionId || comanda.status === "closed" ? "A comanda desta mesa está fechada. Solicite a abertura ao atendente." : comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : !menu.orderingEnabled ? "O restaurante não está recebendo pedidos." : "")
   useEffect(() => { requestId.current = null }, [cart])
   useEffect(() => {
     let cancelled = false
@@ -589,7 +590,7 @@ function App() {
   }
 
   function addSelectedToCart() {
-    if (!selectedItem || !requiredComplete || submitting) return
+    if (!selectedItem || selectedItem.available === false || !requiredComplete || submitting) return
 
     const selectionKey = Object.entries(selections)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -685,11 +686,13 @@ function App() {
   return (
     <div className="restaurant-app">
       <main id="cardapio" className="menu-shell">
+        <div className="menu-topline">
         <div className="menu-identity">
           <div className="restaurant-brand"><Flame size={24} aria-hidden="true"/><h1>{menu.name}</h1></div>
           <span className="app-name">Mesa</span>
         </div>
         <div className="menu-search"><label htmlFor="menu-search">Buscar no cardápio</label><input id="menu-search" type="search" placeholder="Buscar produto ou ingrediente" value={search} onChange={event => setSearch(event.target.value)}/></div>
+        </div>
         <div className="menu-toolbar">
           <nav className="category-nav" aria-label="Categorias do cardápio">
             {categories.map(category => <button key={category.id} aria-pressed={activeCategory === category.id}
@@ -703,7 +706,7 @@ function App() {
         </div>
         <div className="section-heading"><h2>{search.trim() ? "Resultados da busca" : categories.find(category => category.id === activeCategory)?.label}</h2><span>{visibleItems.length} opções</span></div>
         {loading && <p className="menu-notice" role="status">Carregando cardápio…</p>}
-        {!loading && !canOrder && <p className="menu-notice" role="status">{connectionError || (comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : !qrToken && backend ? "Abra o QR code da sua mesa para pedir." : "Pedidos indisponíveis no momento.")}</p>}
+        {!loading && !canOrder && <p className="menu-notice" role="status">{orderBlockReason}</p>}
         {!visibleItems.length && <p className="menu-notice">Nenhum produto encontrado.</p>}
         <div className="food-grid">{visibleItems.map(item => <MenuCard key={item.id} item={item} onSelect={openItem}/>)}</div>
       </main>
@@ -791,7 +794,7 @@ function App() {
             <div className="modal-footer">
               <Button
                 className="w-full justify-between gap-3"
-                disabled={!requiredComplete || !canOrder}
+                disabled={!requiredComplete || selectedItem.available === false || submitting}
                 onClick={addSelectedToCart}
               >
                 <span>Adicionar ao pedido</span>
@@ -833,7 +836,7 @@ function App() {
             <div className="order-total"><span>{view === "cart" ? "Total deste pedido" : "Total da comanda"}</span><strong>{formatPrice(view === "cart" ? cartTotal : tabTotal)}</strong></div>
             {menu.paymentMethods.length > 0 && view === "tab" && <p className="payment-info">Pagamento: {menu.paymentMethods.join(" · ")}</p>}
             {saveError && <p role="alert" className="save-error">{saveError}</p>}
-            {!canOrder && view === "cart" && <p className="table-link-message">{comanda.billRequested ? "Conta solicitada." : "Pedidos indisponíveis no momento."}</p>}
+            {!canOrder && view === "cart" && <p className="table-link-message">{orderBlockReason}</p>}
             {view === "cart" && cart.length ? <button className="primary-button full-button" disabled={!canOrder || submitting} onClick={() => void completeOrder()}>{submitting ? "Enviando…" : "Confirmar pedido"}</button>
             : view === "tab" && tableOrders.length ? <>
               {billConfirm ? <div className="bill-confirm"><p>Solicitar o fechamento desta comanda?</p><div><button className="primary-button" disabled={submitting} onClick={() => void requestBill()}>{submitting ? "Solicitando…" : "Sim, pedir conta"}</button><button className="text-button" disabled={submitting} onClick={() => setBillConfirm(false)}>Voltar</button></div></div>
