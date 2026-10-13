@@ -464,9 +464,10 @@ function App() {
   const [note, setNote] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
-  const [table, setTable] = useState(() => new URLSearchParams(location.search).get("mesa") ?? "")
-  const [tableDraft, setTableDraft] = useState(table)
-  const [tableOpen, setTableOpen] = useState(false)
+  const [table] = useState(() => {
+    const value = new URLSearchParams(location.search).get("mesa") ?? ""
+    return /^[1-9]\d{0,2}$/.test(value) ? value : ""
+  })
   const [view, setView] = useState<"cart" | "tab">("cart")
   const [saveError, setSaveError] = useState("")
   const [orders, setOrders] = useState<TableOrder[]>(readOrders)
@@ -602,7 +603,7 @@ function App() {
 
   function completeOrder() {
     if (cart.length === 0) return
-    if (!/^[1-9]\d{0,2}$/.test(table)) { setTableOpen(true); return }
+    if (!table) return
     const latest = readOrders()
     const id = latest.reduce((max, row) => Math.max(max, row.id), 0) + 1
     const next = [...latest, { id, table, items: cart, createdAt: new Date().toISOString() }]
@@ -620,29 +621,25 @@ function App() {
 
   return (
     <div className="restaurant-app">
-      <header className="site-header"><div className="header-inner">
-        <a className="restaurant-brand" href="#cardapio"><span className="brand-mark"><Flame size={26}/></span>
-          <span><h1>BRASA 47</h1><span className="brand-caption">Hamburgueria</span></span>
-        </a>
-        <div className="app-brand"><span className="app-dot"/>Mesa<span className="app-caption">cardápio digital</span></div>
-        <button className="table-button" onClick={() => { setTableDraft(table); setTableOpen(true) }}><Store size={16}/>{table ? `Mesa ${table}` : "Selecionar mesa"}</button>
-      </div></header>
       <main id="cardapio" className="menu-shell">
+        <div className="menu-identity">
+          <div className="restaurant-brand"><Flame size={24} aria-hidden="true"/><h1>BRASA 47</h1></div>
+          <span className="app-name">Mesa</span>
+        </div>
         <div className="menu-toolbar">
           <nav className="category-nav" aria-label="Categorias do cardápio">
             {categories.map(category => <button key={category.id} aria-pressed={activeCategory === category.id}
               className={activeCategory === category.id ? "active" : ""}
               onClick={() => setActiveCategory(category.id)}>{category.label}</button>)}
           </nav>
-          <button className="tab-link" onClick={() => { setView("tab"); setOrderNumber(null); setCartOpen(true) }}>Minha comanda <span>{formatPrice(tabTotal)}</span></button>
+          <div className="page-order-actions">
+            {cartCount > 0 && <button className="inline-order-button" onClick={() => { setView("cart"); setOrderNumber(null); setCartOpen(true) }}>Ver pedido ({cartCount}) <span>{formatPrice(cartTotal)}</span></button>}
+            <button className="tab-link" onClick={() => { setView("tab"); setOrderNumber(null); setCartOpen(true) }}>Minha comanda <span>{formatPrice(tabTotal)}</span></button>
+          </div>
         </div>
         <div className="section-heading"><h2>{categories.find(category => category.id === activeCategory)?.label}</h2><span>{visibleItems.length} opções</span></div>
         <div className="food-grid">{visibleItems.map(item => <MenuCard key={item.id} item={item} onSelect={openItem}/>)}</div>
       </main>
-      <div className="order-dock"><div className="dock-inner">
-        <div><span className="dock-caption">{cartCount ? `${cartCount} ${cartCount === 1 ? "item no pedido" : "itens no pedido"}` : "Comanda da mesa"}</span><strong>{formatPrice(cartCount ? cartTotal : tabTotal)}</strong></div>
-        <button className="primary-button" onClick={() => { setView(cartCount ? "cart" : "tab"); setOrderNumber(null); setCartOpen(true) }}><ShoppingBag size={18}/>{cartCount ? "Ver pedido" : "Ver comanda"}</button>
-      </div></div>
       <Sheet open={Boolean(selectedItem)} onClose={closeItem} title={selectedItem?.name ?? "Detalhes do item"}>
         {selectedItem ? (
           <>
@@ -754,23 +751,15 @@ function App() {
             : tableOrders.length ? tableOrders.map(order => <section className="tab-order" key={order.id}>
               <div className="tab-order-heading"><span>Pedido #{order.id}</span><time>{new Date(order.createdAt).toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"})}</time></div>
               {order.items.map(item => <div className="tab-line" key={item.key}><div><h3>{item.quantity} × {item.item.name}</h3><p>{[describeSelection(item), item.note].filter(Boolean).join(" · ")}</p></div><strong>{formatPrice(item.unitPrice * item.quantity)}</strong></div>)}
-            </section>) : <div className="empty-state"><ShoppingBag size={32}/><h3>{table ? "Sua comanda está aberta" : "Selecione sua mesa"}</h3><p>{table ? "Os pedidos confirmados se acumulam aqui." : "Informe a mesa para consultar a comanda."}</p></div>}
+            </section>) : <div className="empty-state"><ShoppingBag size={32}/><h3>{table ? "Sua comanda está aberta" : "Cardápio"}</h3><p>{table ? "Os pedidos confirmados se acumulam aqui." : "A comanda é vinculada ao QR code da mesa."}</p></div>}
           </div>
           <div className="modal-footer"><div className="order-total"><span>{view === "cart" ? "Total deste pedido" : "Total da comanda"}</span><strong>{formatPrice(view === "cart" ? cartTotal : tabTotal)}</strong></div>
             {saveError && <p role="alert" className="save-error">{saveError}</p>}
-            {view === "cart" && cart.length ? <button className="primary-button full-button" onClick={completeOrder}>{table ? "Confirmar pedido" : "Selecionar mesa e confirmar"}</button>
-            : !table ? <button className="primary-button full-button" onClick={() => setTableOpen(true)}>Selecionar mesa</button>
+            {!table && <p className="table-link-message">Abra o cardápio pelo QR code da sua mesa para pedir.</p>}
+            {view === "cart" && cart.length ? <button className="primary-button full-button" disabled={!table} onClick={completeOrder}>Confirmar pedido</button>
             : <button className="primary-button full-button" onClick={() => setCartOpen(false)}>Continuar pedindo</button>}
           </div>
         </>}
-      </Sheet>
-      <Sheet open={tableOpen} onClose={() => setTableOpen(false)} title="Qual é a sua mesa?">
-        <div className="modal-scroll table-form"><label htmlFor="table-number">Número da mesa</label>
-          <input id="table-number" type="number" min="1" max="999" inputMode="numeric" placeholder="Ex.: 12" value={tableDraft} onChange={event => setTableDraft(event.target.value)}/></div>
-        <div className="modal-footer"><button className="primary-button full-button" disabled={!/^[1-9]\d{0,2}$/.test(tableDraft)} onClick={() => {
-          setTable(tableDraft); setTableOpen(false);
-          const url = new URL(location.href); url.searchParams.set("mesa", tableDraft); window.history.replaceState(null, "", url)
-        }}>Usar esta mesa</button></div>
       </Sheet>
     </div>
   )

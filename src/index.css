@@ -155,9 +155,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .add-button{display:flex;align-items:center;justify-content:center;gap:6px;background:#d2e6ae0d;border:1px solid #d2e6ae35;border-radius:10px;padding:10px 12px;color:#d2e6ae;font-size:12px;min-height:42px}
 .add-button:hover{background:#d2e6ae;color:#14211a}
 .unavailable{opacity:.5}
-.order-dock{position:fixed;bottom:0;left:0;right:0;z-index:35;padding:12px 24px max(12px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#151819 70%)}
-.dock-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:600px;margin:auto;padding:14px 18px;border-radius:18px;background:#27312bf2;backdrop-filter:blur(24px);border:1px solid #d2e6ae26;box-shadow:0 12px 40px #0005}
-.dock-inner>div{display:flex;flex-direction:column;gap:3px}.dock-caption{font-size:11px;color:#afbcad}.dock-inner strong{font-size:19px;font-weight:600}
+
+
+
 .primary-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;min-height:48px;border:0;border-radius:12px;background:#d2e6ae;color:#14211a;font-size:13px;font-weight:700}
 .primary-button:hover{background:#b8d68d}.full-button{width:100%}
 .modal-backdrop{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:#07100dc9;backdrop-filter:blur(10px)}
@@ -206,8 +206,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .menu-shell{padding:16px 18px 128px}.menu-toolbar{display:block;padding-bottom:14px}.category-nav{margin:0 -18px;padding:0 18px;gap:3px}.category-nav button{font-size:12px;padding:10px 12px}.tab-link{flex-direction:row;align-items:center;gap:8px;margin-top:16px}
 .section-heading{margin:22px 0 16px}.section-heading h2{font-size:25px}
 .food-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.food-card{border-radius:15px}.food-photo{height:130px}.food-tag{top:9px;left:9px;font-size:8px;padding:5px 7px}.food-info{padding:13px}.food-info h3{font-size:17px;min-height:40px;line-height:1.2}.food-info p{font-size:11px;min-height:56px;line-height:1.6}.food-actions{display:block;margin-top:14px}.food-actions strong{font-size:15px}.add-button{width:100%;margin-top:12px;padding:8px;font-size:11px}
-.order-dock{padding-left:14px;padding-right:14px}.dock-inner{border-radius:15px;padding:12px 14px}.dock-inner strong{font-size:17px}.primary-button{padding:12px 16px;font-size:12px}
+.primary-button{padding:12px 16px;font-size:12px}
 .modal-backdrop{padding:10px;align-items:center}.modal-panel{max-height:calc(100dvh - 20px);border-radius:20px}.modal-heading{padding:14px 16px}.modal-heading h2{font-size:19px!important}.modal-footer{padding:14px 16px max(14px,env(safe-area-inset-bottom))}.detail-photo{height:150px}.detail-content{padding:18px}.order-content{padding:8px 18px 18px}.order-tabs{margin:12px 16px 0}
 }
 @media(max-width:350px){.food-grid{grid-template-columns:1fr}.food-photo{height:180px}.food-info h3,.food-info p{min-height:0}.food-actions{display:flex}.add-button{width:auto;margin-top:0}}
 @media(max-height:550px){.detail-photo{height:110px}.modal-heading{padding-top:10px;padding-bottom:10px}.modal-footer{padding-top:10px;padding-bottom:10px}}
+
+.menu-identity{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding:6px 0 24px;border-bottom:1px solid #ffffff10}
+.menu-identity .restaurant-brand{gap:10px;color:#f6f2e9}
+.menu-identity .restaurant-brand>svg{color:#d2e6ae}
+.menu-identity h1{font-size:20px;letter-spacing:.02em}
+.app-name{font-size:11px;color:#96a29a;border-left:1px solid #ffffff20;padding-left:14px}
+.menu-shell{padding-top:24px;padding-bottom:40px}
+.page-order-actions{display:flex;align-items:center;gap:20px;flex-shrink:0}
+.inline-order-button{display:flex;flex-direction:column;align-items:flex-end;gap:3px;background:none;border:0;color:#d2e6ae;font-size:12px;padding:0}
+.inline-order-button span{font-size:11px;color:#a3b09f}
+.table-link-message{font-size:12px;color:#a8b5ab;margin:0 0 14px}
+@media(max-width:600px){
+.menu-shell{padding-top:18px;padding-bottom:28px}
+.menu-identity{margin-bottom:18px;padding-bottom:18px}
+.menu-identity h1{font-size:19px}
+.page-order-actions{margin-top:18px;justify-content:space-between;gap:16px}
+.page-order-actions .tab-link{margin:0}
+.inline-order-button{align-items:flex-start;flex-direction:row;gap:8px}
+}
