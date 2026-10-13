@@ -72,6 +72,7 @@ try {
   assert.equal(await customer.locator(".order-total strong").textContent(), "R$ 41,90")
   await customer.getByRole("button", { name: "Fechar pedido", exact: true }).click()
   await operator.reload()
+  await operator.locator(".cash-receipts>div").first().waitFor()
   assert.equal(await operator.locator(".cash-receipts>div").count(), 1)
   await operator.getByRole("button", { name: "Garçom / Atendente", exact: true }).click()
   await operator.getByRole("button", { name: /Ocupada.*Mesa 5.*41,90/ }).click()
