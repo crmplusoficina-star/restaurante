@@ -32,27 +32,17 @@ Fotos reais; validação de receitas, porções, preços e disponibilidade; ingr
 
 Arquivos de backend e SQL são referências históricas sem uso pelo app. Nenhum banco precisa ser configurado ou criado.
 
-## App de operação
+## Repositórios independentes
 
-Acesse `?app=operacao` para a operação, isolada da interface do cliente:
+- Cliente: crmplusoficina-star/restaurante
+- Garçom/Atendente: crmplusoficina-star/restaurante-atendimento
+- Cozinha: crmplusoficina-star/restaurante-cozinha
+- Caixa: crmplusoficina-star/--restaurante-caixa
 
-- `?app=operacao&perfil=atendimento`: mesas, abertura de comanda, pedidos com opções e observações, confirmação de entrega.
-- `?app=operacao&perfil=cozinha`: fila por etapas Novo → Em preparo → Pronto, com tempo e observações.
-- `?app=operacao&perfil=caixa`: comandas, contas solicitadas, registro local de Pix/cartão/dinheiro e encerramento.
+Cada app tem código, build e Pages próprios. A operação não é importada nem compilada no cliente. Os links antigos com ?app=operacao redirecionam para o novo Pages do módulo.
 
-Pedidos do cliente e da equipe compartilham o armazenamento na mesma origem e no mesmo navegador. Alterações circulam entre abas. A operação usa o mesmo formato das comandas antigas, incluindo a chave de armazenamento. A mesa só pode ser encerrada depois de todos os pedidos serem entregues; reabrir cria outra sessão e preserva o histórico de recebimentos. Registrar pagamento não processa Pix nem cartão.
+Enquanto locais, os apps compartilham dados no mesmo navegador através da origem crmplusoficina-star.github.io. A futura integração real usará o mesmo Supabase com autenticação e permissões por restaurante e função. Nenhuma conexão de banco foi ativada.
 
-Há 12 mesas iniciais de demonstração; outras mesas presentes no armazenamento também aparecem. A alternância de módulos é apenas navegação de protótipo, sem autenticação ou isolamento de permissões. Não usar para recebimentos reais. Para aparelhos diferentes, a próxima etapa é Supabase compartilhado com login e autorização por restaurante e função no servidor.
+## Testes
 
-A assinatura e a gestão do catálogo não fazem parte deste app de operação.
-
-### Teste dos fluxos
-
-```sh
-npm install
-npx playwright install chromium
-npm run dev -- --port 5174
-npm run test:operation
-```
-
-O teste usa Chromium do sistema quando disponível. É possível definir `CHROMIUM_PATH`, `MENU_URL` e `SCREENSHOT_DIR`. Cria dados apenas em um contexto descartável do navegador e verifica o ciclo cliente → cozinha → atendimento → caixa → reabertura, opções, valores, histórico e sincronização entre abas.
+O teste de integração da separação usa quatro builds publicados em caminhos separados de uma mesma origem. Veja tests/separate-apps.mjs. Configuração por variável BASE_ORIGIN.
