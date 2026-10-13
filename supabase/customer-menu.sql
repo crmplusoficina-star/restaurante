@@ -54,7 +54,10 @@ revoke all on public.menu_restaurants,public.menu_products,public.menu_tables,pu
 grant all on public.menu_restaurants,public.menu_products,public.menu_tables,public.menu_sessions,public.menu_orders,public.menu_bill_requests to service_role;
 grant usage, select on sequence public.menu_orders_id_seq to service_role;
 
-create or replace function public.customer_menu(p_restaurant_id uuid)
+create schema if not exists menu_private;
+revoke all on schema menu_private from public;
+grant usage on schema menu_private to anon,authenticated;
+create or replace function menu_private.customer_menu(p_restaurant_id uuid)
 returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
   select jsonb_build_object(
     'name',r.name,'orderingEnabled',r.ordering_enabled,
@@ -64,7 +67,7 @@ returns jsonb language sql stable security definer set search_path = public, pg_
   from menu_restaurants r where r.id=p_restaurant_id
 $$;
 
-create or replace function public.customer_comanda(p_restaurant_id uuid,p_qr_token uuid)
+create or replace function menu_private.customer_comanda(p_restaurant_id uuid,p_qr_token uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare t menu_tables; s menu_sessions; result jsonb;
 begin
@@ -78,7 +81,7 @@ begin
       from menu_orders o where o.session_id=s.id and o.status<>'cancelled'),'[]'::jsonb));
 end $$;
 
-create or replace function public.customer_submit_order(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid,p_request_id uuid,p_items jsonb)
+create or replace function menu_private.customer_submit_order(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid,p_request_id uuid,p_items jsonb)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   t menu_tables; s menu_sessions; r menu_restaurants; product jsonb; row jsonb;
@@ -133,7 +136,7 @@ begin
   return jsonb_build_object('id',order_id);
 end $$;
 
-create or replace function public.customer_request_bill(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid)
+create or replace function menu_private.customer_request_bill(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare s menu_sessions;
 begin
@@ -145,8 +148,26 @@ begin
   update menu_sessions set status='bill_requested' where id=s.id;
   return jsonb_build_object('requested',true);
 end $$;
-revoke all on function public.customer_menu(uuid), public.customer_comanda(uuid,uuid),
- public.customer_submit_order(uuid,uuid,uuid,uuid,jsonb),public.customer_request_bill(uuid,uuid,uuid) from public;
-grant execute on function public.customer_menu(uuid), public.customer_comanda(uuid,uuid),
- public.customer_submit_order(uuid,uuid,uuid,uuid,jsonb),public.customer_request_bill(uuid,uuid,uuid) to anon,authenticated;
+revoke all on function menu_private.customer_menu(uuid) from public;
+grant execute on function menu_private.customer_menu(uuid) to anon,authenticated;
+create or replace function public.customer_menu(p_restaurant_id uuid) returns jsonb language sql security invoker set search_path = '' as $$ select menu_private.customer_menu(p_restaurant_id) $$;
+revoke all on function public.customer_menu(uuid) from public;
+grant execute on function public.customer_menu(uuid) to anon,authenticated;
 
+revoke all on function menu_private.customer_comanda(uuid,uuid) from public;
+grant execute on function menu_private.customer_comanda(uuid,uuid) to anon,authenticated;
+create or replace function public.customer_comanda(p_restaurant_id uuid,p_qr_token uuid) returns jsonb language sql security invoker set search_path = '' as $$ select menu_private.customer_comanda(p_restaurant_id,p_qr_token) $$;
+revoke all on function public.customer_comanda(uuid,uuid) from public;
+grant execute on function public.customer_comanda(uuid,uuid) to anon,authenticated;
+
+revoke all on function menu_private.customer_submit_order(uuid,uuid,uuid,uuid,jsonb) from public;
+grant execute on function menu_private.customer_submit_order(uuid,uuid,uuid,uuid,jsonb) to anon,authenticated;
+create or replace function public.customer_submit_order(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid,p_request_id uuid,p_items jsonb) returns jsonb language sql security invoker set search_path = '' as $$ select menu_private.customer_submit_order(p_restaurant_id,p_qr_token,p_session_id,p_request_id,p_items) $$;
+revoke all on function public.customer_submit_order(uuid,uuid,uuid,uuid,jsonb) from public;
+grant execute on function public.customer_submit_order(uuid,uuid,uuid,uuid,jsonb) to anon,authenticated;
+
+revoke all on function menu_private.customer_request_bill(uuid,uuid,uuid) from public;
+grant execute on function menu_private.customer_request_bill(uuid,uuid,uuid) to anon,authenticated;
+create or replace function public.customer_request_bill(p_restaurant_id uuid,p_qr_token uuid,p_session_id uuid) returns jsonb language sql security invoker set search_path = '' as $$ select menu_private.customer_request_bill(p_restaurant_id,p_qr_token,p_session_id) $$;
+revoke all on function public.customer_request_bill(uuid,uuid,uuid) from public;
+grant execute on function public.customer_request_bill(uuid,uuid,uuid) to anon,authenticated;
