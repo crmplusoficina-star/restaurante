@@ -1,8 +1,20 @@
 # BRASA 47 — cardápio do cliente
 
-Cardápio estático em React, TypeScript e Vite. O cliente consulta categorias, busca pratos, filtra opções disponíveis, guarda favoritos durante a visita e abre detalhes com preços e opções de acompanhamento. Interface de app com tema escuro, categorias horizontais, navegação inferior fixa e ficha de produto em painel no celular. Funciona em celular e desktop, com navegação por teclado e fechamento dos detalhes com Escape.
+App do cliente em React, TypeScript e Vite. Tema escuro, categorias, busca, favoritos, adicionar produtos, pedido, comanda e pedir conta. Não há gestão, edição, login ou conexão com banco real.
 
-Não há gestão, edição, login, carrinho, pedidos, comanda, pagamentos ou conexão com banco de dados. O catálogo fica em `src/menu.ts`; preços são armazenados em centavos. As imagens são ilustrativas do Unsplash.
+## Fluxo local
+
+- Adicionar abre a ficha do produto, com quantidade, opções e observação.
+- Meu pedido permite ajustar quantidades e remover itens antes de confirmar.
+- Confirmar pedido salva os itens na comanda deste navegador.
+- Minha comanda mostra os pedidos confirmados e o total acumulado.
+- Pedir conta exige confirmação e bloqueia novos pedidos.
+- A comanda persiste em localStorage e utiliza a mesma chave da versão original, preservando comandas anteriores.
+- O parâmetro `?mesa=5` separa as comandas locais; sem parâmetro, a mesa é 1.
+- Não há envio à cozinha, comunicação com atendente ou sincronização entre celulares. A interface identifica o modo de demonstração local.
+- Se o armazenamento falhar, o pedido é preservado e um erro é mostrado.
+
+O catálogo estático fica em `src/menu.ts`; preços são armazenados em centavos. Fotos ilustrativas. Os favoritos e o pedido ainda não confirmado ficam na memória durante a visita.
 
 ## Desenvolvimento
 
@@ -12,13 +24,10 @@ npm run dev
 npm run build
 ```
 
-A base de publicação existente é `/restaurante/`.
+A base é `/restaurante/`. Alterações concluídas devem ser publicadas no GitHub Pages; o workflow publica a branch main.
 
-## O que falta para um cardápio definitivo
+## Conteúdo pendente
 
-- Fotos reais de cada produto, incluindo combos e bebidas.
-- Validar receitas, porções, disponibilidade e preços com o restaurante.
-- Ingredientes e alergênicos confirmados pela equipe; o app orienta o cliente a consultar a equipe enquanto isso.
-- Endereço, horários e contato reais, caso devam aparecer. Esses dados não foram inventados.
+Fotos reais; validação de receitas, porções, preços e disponibilidade; ingredientes e alergênicos confirmados; endereço, horários e contato reais se necessários. Nenhum desses dados foi inventado.
 
-Os arquivos SQL em `supabase/`, o módulo `src/backend.ts` e os testes SQL antigos são referências históricas sem uso pelo cardápio atual. Nenhum banco precisa ser configurado ou criado.
+Arquivos de backend e SQL são referências históricas sem uso pelo app. Nenhum banco precisa ser configurado ou criado.
