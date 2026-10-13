@@ -1,6 +1,6 @@
 # BRASA 47 — cardápio do cliente
 
-Cardápio estático em React, TypeScript e Vite. O cliente consulta categorias, busca pratos, filtra opções disponíveis e abre detalhes com preços e opções de acompanhamento. Funciona em celular e desktop, com navegação por teclado e fechamento dos detalhes com Escape.
+Cardápio estático em React, TypeScript e Vite. O cliente consulta categorias, busca pratos, filtra opções disponíveis, guarda favoritos durante a visita e abre detalhes com preços e opções de acompanhamento. Interface de app com tema escuro, categorias horizontais, navegação inferior fixa e ficha de produto em painel no celular. Funciona em celular e desktop, com navegação por teclado e fechamento dos detalhes com Escape.
 
 Não há gestão, edição, login, carrinho, pedidos, comanda, pagamentos ou conexão com banco de dados. O catálogo fica em `src/menu.ts`; preços são armazenados em centavos. As imagens são ilustrativas do Unsplash.
 

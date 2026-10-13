@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUpRight, Flame, Search, SlidersHorizontal, Utensils, X } from "lucide-react"
+import { ArrowUpRight, ChevronRight, Flame, Heart, Info, LayoutGrid, Search, SlidersHorizontal, Utensils, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { categories, menuItems, type MenuItem } from "./menu"
 
@@ -27,34 +27,50 @@ function Details({ item, close }: { item: MenuItem; close: () => void }) {
     </div>
   </dialog>
 }
+
 export default function App() {
   const [category, setCategory] = useState("featured")
   const [query, setQuery] = useState("")
   const [availableOnly, setAvailableOnly] = useState(false)
   const [selected, setSelected] = useState<MenuItem | null>(null)
+  const [view, setView] = useState<"menu" | "favorites" | "info">("menu")
+  const [favorites, setFavorites] = useState<string[]>([])
   const search = normalize(query.trim())
   const products = menuItems.filter(item =>
-    (category === "featured" ? Boolean(item.badge) && item.available !== false : item.category === category) &&
+    (view === "favorites" ? favorites.includes(item.id) : search ? true : category === "featured" ? Boolean(item.badge) && item.available !== false : item.category === category) &&
     (!availableOnly || item.available !== false) &&
     (!search || normalize(item.name + " " + item.shortDescription + " " + item.details).includes(search)))
-  return <>
+  function toggleFavorite(id: string) {
+    setFavorites(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id])
+  }
+  return <div className="app-shell">
     <a className="skip-link" href="#cardapio">Ir para o cardápio</a>
-    <header className="site-header"><a className="brand" href="#" aria-label="BRASA 47, início"><span className="brand-icon"><Flame size={24} fill="currentColor" /></span>BRASA<span className="brand-number">47</span></a><span className="header-caption">SMASH • FRITAS • BONS MOMENTOS</span><a className="header-link" href="#cardapio">Explorar cardápio <ArrowDown size={16} /></a></header>
-    <main>
-      <section className="hero">
-        <div className="hero-copy"><span className="eyebrow"><span className="small-line" /> FEITO NA CHAPA. SEM COMPLICAÇÃO.</span><h1>Fome de<br />algo <em>bom?</em></h1><p>Smash com crosta, queijo derretido e aquele molho da casa. Escolha seu favorito e aproveite cada mordida.</p><a className="hero-cta" href="#cardapio">Encontre seu próximo favorito <ArrowDown size={18} /></a><div className="hero-footnote"><Flame size={16} /> Sabor de verdade, do primeiro ao último pedaço.</div></div>
-        <div className="hero-visual"><FoodImage item={menuItems[0]} eager /><div className="hero-shade" /><span className="hero-stamp">NA CHAPA<br /><Flame size={24} /><br />NO CAPRICHO</span><div className="hero-feature"><div><span>O CLÁSSICO DA CASA</span><strong>Brasa Smash</strong></div><button onClick={() => setSelected(menuItems[0])} aria-label="Ver detalhes do Brasa Smash"><ArrowUpRight size={25} /></button></div></div>
-      </section>
-      <section id="cardapio" className="menu-section">
-        <div className="menu-title"><div><span className="eyebrow">ESCOLHA SEM PRESSA</span><h2>Nosso cardápio<span>.</span></h2></div><p>Seu próximo favorito está aqui.</p></div>
-        <div className="menu-controls"><nav aria-label="Categorias do cardápio">{categories.map(item => <button key={item.id} className={category === item.id ? "active" : ""} aria-pressed={category === item.id} onClick={() => setCategory(item.id)}>{item.id === "featured" && <Flame size={16} />}{item.label}</button>)}</nav><div className="search"><Search size={18} /><input type="search" aria-label="Buscar no cardápio" placeholder="O que você está procurando?" value={query} onChange={event => setQuery(event.target.value)} /></div></div>
-        <div className="results-bar"><span aria-live="polite"><strong>{categories.find(item => item.id === category)?.label}</strong> <span className="result-count">{products.length} opções</span></span><button className={availableOnly ? "filter selected" : "filter"} aria-pressed={availableOnly} onClick={() => setAvailableOnly(!availableOnly)}><SlidersHorizontal size={15} /> Só disponíveis</button></div>
-        <div className="food-grid">{products.map(item => <article className={item.available === false ? "food-card unavailable" : "food-card"} key={item.id}><button className="card-button" onClick={() => setSelected(item)} aria-label={`Ver detalhes de ${item.name}, ${money(item.price)}`}><div className="card-image"><FoodImage item={item} />{item.badge && <span className={item.available === false ? "badge sold-out" : "badge"}>{item.badge === "Bruto" ? "Bacon crocante" : item.badge}</span>}<span className="image-arrow"><ArrowUpRight size={19} /></span></div><div className="card-body"><h3>{item.name}</h3><p>{item.shortDescription}</p><div className="card-bottom"><strong>{money(item.price)}</strong><span>{item.available === false ? "Indisponível" : "Ver detalhes"}<ArrowUpRight size={14} /></span></div></div></button></article>)}</div>
-        {products.length === 0 && <div className="empty-state"><Search size={30} /><h3>Nenhuma opção encontrada</h3><p>Tente outro nome ou explore as outras categorias.</p><button onClick={() => { setQuery(""); setCategory("featured"); setAvailableOnly(false) }}>Limpar filtros</button></div>}
-        <div className="menu-note"><Utensils size={20} /><div><strong>Uma boa escolha começa com informação.</strong><p>Para restrições alimentares e detalhes sobre o preparo, converse com nossa equipe. Fotos ilustrativas.</p></div></div>
-      </section>
+    <header className="app-header">
+      <div className="brand"><span className="brand-icon"><Flame size={23} fill="currentColor" /></span><div><h1>BRASA <span>47</span></h1><p>Smash burgers & acompanhamentos</p></div></div>
+      <button className="header-info" aria-label="Informações do cardápio" onClick={() => setView("info")}><Info size={21} /></button>
+    </header>
+    <main id="cardapio">
+      {view !== "info" ? <>
+        <div className="page-heading"><div><span className="eyebrow">{view === "favorites" ? "SUAS ESCOLHAS" : "CARDÁPIO"}</span><h2>{view === "favorites" ? "Seus favoritos" : "O que vai ser hoje?"}</h2></div><span className="menu-symbol"><Utensils size={22}/></span></div>
+        <div className="search"><Search size={19}/><input type="search" aria-label="Buscar no cardápio" placeholder="Buscar burger, porção, bebida..." value={query} onChange={event => setQuery(event.target.value)} />{query && <button onClick={() => setQuery("")} aria-label="Limpar busca"><X size={17}/></button>}</div>
+        {view === "menu" && <nav className="categories" aria-label="Categorias do cardápio">{categories.map(item => <button key={item.id} className={category === item.id ? "active" : ""} aria-pressed={category === item.id} onClick={() => { setCategory(item.id); setQuery("") }}>{item.id === "featured" && <Flame size={15}/>} {item.label}</button>)}</nav>}
+        <div className="results-bar"><div><h3>{search ? "Resultados da busca" : view === "favorites" ? "Salvos por você" : categories.find(item => item.id === category)?.label}</h3><span aria-live="polite">{products.length} opções</span></div><button className={availableOnly ? "filter selected" : "filter"} aria-pressed={availableOnly} onClick={() => setAvailableOnly(!availableOnly)}><SlidersHorizontal size={16}/><span>Só disponíveis</span></button></div>
+        <div className="food-grid">{products.map((item, index) => <article className={item.available === false ? "food-card unavailable" : "food-card"} key={item.id}>
+          <button className="card-button" onClick={() => setSelected(item)} aria-label={`Ver detalhes de ${item.name}, ${money(item.price)}`}>
+            <div className="card-image"><FoodImage item={item} eager={index < 4}/>{item.badge && <span className={item.available === false ? "badge sold-out" : "badge"}>{item.badge === "Bruto" ? "Bacon crocante" : item.badge}</span>}</div>
+            <div className="card-body"><h3>{item.name}</h3><p>{item.shortDescription}</p><div className="card-bottom"><strong>{money(item.price)}</strong><span className="detail-arrow"><ChevronRight size={18}/></span></div></div>
+          </button>
+          <button className={favorites.includes(item.id) ? "favorite-button saved" : "favorite-button"} aria-label={`${favorites.includes(item.id) ? "Remover" : "Salvar"} ${item.name} ${favorites.includes(item.id) ? "dos" : "nos"} favoritos`} aria-pressed={favorites.includes(item.id)} onClick={() => toggleFavorite(item.id)}><Heart size={17} fill={favorites.includes(item.id) ? "currentColor" : "none"}/></button>
+        </article>)}</div>
+        {products.length === 0 && <div className="empty-state">{view === "favorites" ? <Heart size={32}/> : <Search size={32}/>}<h3>{view === "favorites" && !favorites.length ? "Seus favoritos ficam aqui" : "Nenhuma opção encontrada"}</h3><p>{view === "favorites" && !favorites.length ? "Toque no coração de um prato para guardar sua escolha." : "Tente outro nome ou explore as categorias."}</p><button onClick={() => { setQuery(""); setCategory("featured"); setAvailableOnly(false); setView("menu") }}>Explorar cardápio</button></div>}
+        <p className="photo-note">Fotos ilustrativas. Consulte a equipe sobre restrições alimentares.</p>
+      </> : <section className="info-page"><span className="eyebrow">BRASA 47</span><h2>Sobre o cardápio</h2><div className="info-card"><Utensils/><h3>Ingredientes e alergênicos</h3><p>Converse com a equipe antes de escolher caso tenha alergias ou restrições alimentares. As informações de alergênicos ainda não foram confirmadas.</p></div><div className="info-card"><Info/><h3>Informações dos pratos</h3><p>As fotos são ilustrativas. Abra um prato para consultar sua descrição, preço e opções de acompanhamento.</p></div><div className="info-card"><Heart/><h3>Suas escolhas</h3><p>Os favoritos ajudam a comparar os pratos enquanto você navega. Eles ficam disponíveis durante esta visita.</p></div></section>}
     </main>
-    <footer><a className="brand" href="#">BRASA<span className="brand-number">47</span></a><span>Feito na chapa. Aproveitado à mesa.</span><a href="#cardapio">Voltar ao cardápio <ArrowUpRight size={15} /></a></footer>
+    <nav className="bottom-nav" aria-label="Navegação principal">
+      <button className={view === "menu" ? "active" : ""} aria-current={view === "menu" ? "page" : undefined} onClick={() => setView("menu")}><LayoutGrid size={21}/><span>Cardápio</span></button>
+      <button className={view === "favorites" ? "active" : ""} aria-current={view === "favorites" ? "page" : undefined} onClick={() => { setView("favorites"); setQuery("") }}><span className="nav-icon"><Heart size={21}/>{favorites.length > 0 && <span className="favorites-count" aria-hidden="true">{favorites.length}</span>}</span><span>Favoritos</span></button>
+      <button className={view === "info" ? "active" : ""} aria-current={view === "info" ? "page" : undefined} onClick={() => setView("info")}><Info size={21}/><span>Informações</span></button>
+    </nav>
     {selected && <Details item={selected} close={() => setSelected(null)} />}
-  </>
+  </div>
 }
