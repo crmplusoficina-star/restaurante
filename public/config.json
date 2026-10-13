@@ -1,6 +1,5 @@
 {
-  "supabaseUrl": "",
-  "publicKey": "",
-  "restaurantId": ""
+  "supabaseUrl": "https://lduanbxabnuohqdhypsl.supabase.co",
+  "publicKey": "sb_publishable_f0TejmblReQYZ5_76trBKQ_DBl7Mb0g",
+  "restaurantId": "47470000-0000-4000-8000-000000000001"
 }
-
