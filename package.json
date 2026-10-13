@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "test": "node scripts/test-customer-menu.mjs",
-    "test:operation": "node tests/operation-flow.mjs"
+    "test:apps": "node tests/separate-apps.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.542.0",
