@@ -37,7 +37,7 @@ Arquivos de backend e SQL são referências históricas sem uso pelo app. Nenhum
 - Cliente: crmplusoficina-star/restaurante
 - Garçom/Atendente: crmplusoficina-star/restaurante-atendimento
 - Cozinha: crmplusoficina-star/restaurante-cozinha
-- Caixa: crmplusoficina-star/restaurante-caixa
+- Caixa: crmplusoficina-star/--restaurante-caixa
 
 Cada app tem código, build e Pages próprios. A operação não é importada nem compilada no cliente. Os links antigos com ?app=operacao redirecionam para o novo Pages do módulo.
 

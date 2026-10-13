@@ -6,7 +6,7 @@ import './index.css'
 const params = new URLSearchParams(location.search)
 if (params.get("app") === "operacao") {
   const role = params.get("perfil")
-  location.replace("/restaurante-" + (role === "caixa" || role === "cozinha" ? role : "atendimento") + "/")
+  location.replace(role === "caixa" ? "/--restaurante-caixa/" : "/restaurante-" + (role === "cozinha" ? role : "atendimento") + "/")
 } else {
   createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)
 }

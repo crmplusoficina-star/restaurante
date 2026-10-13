@@ -94,7 +94,7 @@ try {
   await operator.screenshot({path:join(screenshots, "operation-waiter.png"),fullPage:true})
   await customer.goto(base + "restaurante/?app=operacao&perfil=caixa")
   await customer.getByRole("heading", { name: "Caixa", exact: true }).waitFor()
-  assert(new URL(customer.url()).pathname === "/restaurante-caixa/")
+  assert(new URL(customer.url()).pathname === "/--restaurante-caixa/")
   assert.deepEqual(errors, [])
   console.log("Passed: customer → kitchen → delivery → payment → reopened table, cross-tab sync, notes/options, totals, payment history, reload persistence, closed-tab blocks, responsive roles.")
 } catch(error) { console.error(error); await operator.screenshot({path:join(screenshots, "operation-error.png")}); throw error } finally { await browser.close() }
