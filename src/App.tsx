@@ -13,6 +13,7 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -361,6 +362,19 @@ function FoodImage({
   )
 }
 
+
+type TableOrder = { id: number; table: string; items: CartItem[]; createdAt: string }
+const storageKey = "brasa47:orders:v1"
+function readOrders(): TableOrder[] {
+  try {
+    const rows: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]")
+    return Array.isArray(rows) ? rows.filter((row): row is TableOrder => row &&
+      Number.isInteger(row.id) && typeof row.table === "string" && Array.isArray(row.items) &&
+      row.items.every((item: CartItem) => item?.item && typeof item.item.name === "string" &&
+        Number.isFinite(item.unitPrice) && Number.isInteger(item.quantity) && item.quantity > 0)) : []
+  } catch { return [] }
+}
+
 function Sheet({
   open,
   onClose,
@@ -372,6 +386,7 @@ function Sheet({
   title: string
   children: ReactNode
 }) {
+  const titleId = useId()
   const panelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -398,23 +413,23 @@ function Sheet({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-backdrop md:items-center md:p-6">
+    <div className="modal-backdrop">
       <div
         aria-hidden="true"
         className="absolute inset-0"
         onClick={onClose}
       />
       <div
-        aria-labelledby="sheet-title"
+        aria-labelledby={titleId}
         aria-modal="true"
-        className="sheet-enter relative z-10 max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[26px] border border-line bg-canvas shadow-dialog outline-none md:rounded-[26px]"
+        className="modal-panel"
         onClick={(event) => event.stopPropagation()}
         ref={panelRef}
         role="dialog"
         tabIndex={-1}
       >
-        <div className="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
-          <h2 className="font-display text-2xl font-bold text-ink" id="sheet-title">
+        <div className="modal-heading">
+          <h2 className="font-display text-2xl font-bold text-ink" id={titleId}>
             {title}
           </h2>
           <IconButton label="Fechar" onClick={onClose}>
@@ -427,72 +442,21 @@ function Sheet({
   )
 }
 
-function MenuCard({
-  item,
-  onSelect,
-}: {
-  item: MenuItem
-  onSelect: (item: MenuItem) => void
-}) {
+
+function MenuCard({item, onSelect}: {item: MenuItem; onSelect: (item: MenuItem) => void}) {
   const available = item.available !== false
-
-  return (
-    <article
-      className={`flex min-h-[180px] items-stretch gap-3 rounded-[20px] border bg-surface p-3 ${
-        available ? "border-line/70" : "border-line/40 opacity-60"
-      }`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          
-          {item.spicy ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-action">
-              <Flame aria-hidden="true" size={12} />
-              Picante
-            </span>
-          ) : null}
-        </div>
-
-        <h3 className="font-display text-xl font-bold leading-tight text-ink">
-          {item.name}
-        </h3>
-        <p className="mt-2 line-clamp-3 text-sm leading-6 text-ink-muted">
-          {item.shortDescription}
-        </p>
-
-        <div className="mt-4 flex items-end justify-between gap-3">
-          <span className="text-base font-bold text-action tabular-nums">
-            {formatPrice(item.price)}
-          </span>
-          <Button
-            className="min-h-10 px-4 text-xs sm:text-sm"
-            disabled={!available}
-            onClick={() => onSelect(item)}
-            variant={available ? "primary" : "ghost"}
-          >
-            {available ? "Adicionar" : "Esgotado"}
-          </Button>
-        </div>
+  return <article className={`food-card ${available ? "" : "unavailable"}`}>
+    <button className="food-photo" aria-label={`Ver ${item.name}`} onClick={() => onSelect(item)} disabled={!available}>
+      <FoodImage src={item.image} alt={item.imageAlt} className="food-photo-img" />
+      {item.badge && <span className="food-tag">{item.badge}</span>}
+    </button>
+    <div className="food-info"><h3>{item.name}</h3><p>{item.shortDescription}</p>
+      <div className="food-actions"><strong>{formatPrice(item.price)}</strong>
+        <button className="add-button" disabled={!available} onClick={() => onSelect(item)}><Plus size={17} />{available ? "Adicionar" : "Esgotado"}</button>
       </div>
-
-      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[18px] bg-surface-raised sm:h-32 sm:w-32">
-        <FoodImage
-          alt={item.imageAlt}
-          className="size-full object-cover"
-          src={item.image}
-        />
-        {!available ? (
-          <div className="absolute inset-0 grid place-items-center bg-black/45">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-              Sem estoque
-            </span>
-          </div>
-        ) : null}
-      </div>
-    </article>
-  )
+    </div>
+  </article>
 }
-
 function App() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>("featured")
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
@@ -500,6 +464,14 @@ function App() {
   const [note, setNote] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [table, setTable] = useState(() => new URLSearchParams(location.search).get("mesa") ?? "")
+  const [tableDraft, setTableDraft] = useState(table)
+  const [tableOpen, setTableOpen] = useState(false)
+  const [view, setView] = useState<"cart" | "tab">("cart")
+  const [saveError, setSaveError] = useState("")
+  const [orders, setOrders] = useState<TableOrder[]>(readOrders)
+  const tableOrders = orders.filter(order => order.table === table)
+  const tabTotal = tableOrders.reduce((sum, order) => sum + order.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0), 0)
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
 
   const visibleItems = useMemo(
@@ -630,122 +602,58 @@ function App() {
 
   function completeOrder() {
     if (cart.length === 0) return
-    setOrderNumber(Math.floor(1000 + Math.random() * 9000))
+    if (!/^[1-9]\d{0,2}$/.test(table)) { setTableOpen(true); return }
+    const latest = readOrders()
+    const id = latest.reduce((max, row) => Math.max(max, row.id), 0) + 1
+    const next = [...latest, { id, table, items: cart, createdAt: new Date().toISOString() }]
+    try { localStorage.setItem(storageKey, JSON.stringify(next)) }
+    catch { setSaveError("Não foi possível salvar a comanda. Tente novamente."); return }
+    setOrders(next); setCart([]); setSaveError(""); setOrderNumber(id)
   }
 
   function finishConfirmation() {
     setOrderNumber(null)
     setCartOpen(false)
-    setCart([])
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+
   return (
-    <div className="min-h-screen bg-canvas text-ink">
-      <header className="sticky top-0 z-40 border-b border-line/70 bg-canvas/92 backdrop-blur-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <button
-            aria-label="Voltar ao topo"
-            className="flex items-center gap-3 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-action"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          >
-            <span className="grid size-10 place-items-center rounded-full bg-action font-display text-sm font-black text-ink-inverse shadow-card">
-              <Flame aria-hidden="true" size={24} />
-            </span>
-            <h1 className="font-display text-lg font-bold text-ink">
-              BRASA 47
-            </h1>
-          </button>
-
-          <button
-            aria-label={`Abrir carrinho com ${cartCount} itens`}
-            className="inline-flex items-center gap-2 rounded-full bg-action px-3 py-2 text-sm font-semibold text-ink-inverse shadow-card transition-colors hover:bg-action-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-            onClick={() => setCartOpen(true)}
-          >
-            <ShoppingBag aria-hidden="true" size={16} />
-            <span>Carrinho</span>
-            {cartCount > 0 ? (
-              <span className="grid min-w-5 place-items-center rounded-full bg-ink-inverse px-1 text-[10px] font-bold text-action">
-                {cartCount}
-              </span>
-            ) : null}
-          </button>
+    <div className="restaurant-app">
+      <header className="site-header"><div className="header-inner">
+        <a className="restaurant-brand" href="#cardapio"><span className="brand-mark"><Flame size={26}/></span>
+          <span><h1>BRASA 47</h1><span className="brand-caption">Hamburgueria</span></span>
+        </a>
+        <div className="app-brand"><span className="app-dot"/>Mesa<span className="app-caption">cardápio digital</span></div>
+        <button className="table-button" onClick={() => { setTableDraft(table); setTableOpen(true) }}><Store size={16}/>{table ? `Mesa ${table}` : "Selecionar mesa"}</button>
+      </div></header>
+      <main id="cardapio" className="menu-shell">
+        <div className="menu-toolbar">
+          <nav className="category-nav" aria-label="Categorias do cardápio">
+            {categories.map(category => <button key={category.id} aria-pressed={activeCategory === category.id}
+              className={activeCategory === category.id ? "active" : ""}
+              onClick={() => setActiveCategory(category.id)}>{category.label}</button>)}
+          </nav>
+          <button className="tab-link" onClick={() => { setView("tab"); setOrderNumber(null); setCartOpen(true) }}>Minha comanda <span>{formatPrice(tabTotal)}</span></button>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-screen-xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
-        <section className="space-y-5">
-          <div
-            aria-label="Categorias do cardápio"
-            className="sticky top-[74px] z-30 -mx-4 overflow-x-auto border-y border-line/70 bg-canvas/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-[20px] lg:border lg:bg-surface/90 lg:px-3"
-            role="tablist"
-          >
-            <div className="flex min-w-max gap-2">
-              {categories.map((category) => {
-                const active = activeCategory === category.id
-                return (
-                  <button
-                    aria-selected={active}
-                    className={`min-h-11 rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 ${
-                      active
-                        ? "bg-action text-ink-inverse shadow-card"
-                        : "text-ink-muted hover:bg-surface-raised hover:text-ink"
-                    }`}
-                    key={category.id}
-                    onClick={() => setActiveCategory(category.id)}
-                    role="tab"
-                  >
-                    {category.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="mt-1 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="mt-1 font-display text-2xl font-black text-ink">
-                {categories.find((category) => category.id === activeCategory)?.label}
-              </h2>
-            </div>
-            <span className="text-xs text-ink-faint">{visibleItems.length} itens</span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-            {visibleItems.map((item) => (
-              <MenuCard key={item.id} item={item} onSelect={openItem} />
-            ))}
-          </div>
-        </section>
+        <div className="section-heading"><h2>{categories.find(category => category.id === activeCategory)?.label}</h2><span>{visibleItems.length} opções</span></div>
+        <div className="food-grid">{visibleItems.map(item => <MenuCard key={item.id} item={item} onSelect={openItem}/>)}</div>
       </main>
-
-      {cartCount > 0 && !cartOpen ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md md:hidden">
-          <button
-            className="flex w-full items-center justify-between gap-2 rounded-full bg-action px-4 py-3 text-sm font-semibold text-ink-inverse"
-            onClick={() => setCartOpen(true)}
-            type="button"
-          >
-            <span className="inline-flex items-center gap-2">
-              <ShoppingBag aria-hidden="true" size={16} />
-              Ver pedido ({cartCount})
-            </span>
-            <span>{formatPrice(cartTotal)}</span>
-          </button>
-        </div>
-      ) : null}
-
+      <div className="order-dock"><div className="dock-inner">
+        <div><span className="dock-caption">{cartCount ? `${cartCount} ${cartCount === 1 ? "item no pedido" : "itens no pedido"}` : "Comanda da mesa"}</span><strong>{formatPrice(cartCount ? cartTotal : tabTotal)}</strong></div>
+        <button className="primary-button" onClick={() => { setView(cartCount ? "cart" : "tab"); setOrderNumber(null); setCartOpen(true) }}><ShoppingBag size={18}/>{cartCount ? "Ver pedido" : "Ver comanda"}</button>
+      </div></div>
       <Sheet open={Boolean(selectedItem)} onClose={closeItem} title={selectedItem?.name ?? "Detalhes do item"}>
         {selectedItem ? (
           <>
-            <div className="max-h-[calc(92dvh-88px)] overflow-y-auto">
+            <div className="modal-scroll">
               <FoodImage
                 alt={selectedItem.imageAlt}
-                className="h-40 w-full object-cover sm:h-48"
+                className="detail-photo"
                 src={selectedItem.image}
               />
 
-              <div className="space-y-6 p-4 md:p-5">
+              <div className="detail-content space-y-6">
                 <div className="flex items-start justify-between gap-3">
                   <p className="max-w-[70%] text-sm leading-6 text-ink-muted">
                     {selectedItem.shortDescription}
@@ -810,7 +718,7 @@ function App() {
               </div>
             </div>
 
-            <div className="border-t border-line bg-canvas p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="modal-footer">
               <Button
                 className="w-full justify-between gap-3"
                 disabled={!requiredComplete}
@@ -824,105 +732,47 @@ function App() {
         ) : null}
       </Sheet>
 
-      <Sheet open={cartOpen} onClose={() => { if (orderNumber) finishConfirmation(); else setCartOpen(false) }} title={orderNumber ? `Pedido #${orderNumber}` : "Seu pedido"}>
-        {orderNumber ? (
-          <div className="space-y-6 p-6 text-center">
-            <div className="mx-auto grid size-16 place-items-center rounded-full bg-status-subtle text-status">
-              <Check aria-hidden="true" size={28} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-status">
-                Pedido confirmado
-              </p>
-              <h3 className="mt-2 font-display text-3xl font-black text-ink">
-                #{orderNumber}
-              </h3>
-              <p className="mt-3 text-sm leading-6 text-ink-muted">
-                Este pedido é uma demonstração e não foi enviado ao restaurante.
-              </p>
-            </div>
-            <Button className="w-full" onClick={finishConfirmation}>
-              Voltar ao cardápio
-            </Button>
+
+      <Sheet open={cartOpen} onClose={() => setCartOpen(false)} title={table ? `Mesa ${table}` : "Seu pedido"}>
+        {orderNumber ? <>
+          <div className="modal-scroll confirmation">
+            <span className="confirmation-icon"><Check size={30}/></span><h3>Adicionado à comanda</h3><p>Pedido #{orderNumber}</p>
+            <div className="confirmation-total"><span>Total da mesa</span><strong>{formatPrice(tabTotal)}</strong></div>
           </div>
-        ) : cart.length === 0 ? (
-          <div className="space-y-4 p-6 text-center">
-            <div className="mx-auto grid size-16 place-items-center rounded-full bg-surface-raised text-ink-faint">
-              <ShoppingBag aria-hidden="true" size={28} />
-            </div>
-            <div>
-              <h3 className="font-display text-2xl font-black text-ink">Carrinho vazio</h3>
-              <p className="mt-2 text-sm leading-6 text-ink-muted">
-                Escolha um smash, combo ou bebida para começar seu pedido.
-              </p>
-            </div>
-            <Button className="w-full" onClick={() => setCartOpen(false)} variant="secondary">
-              Voltar ao cardápio
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="max-h-[calc(92dvh-220px)] space-y-3 overflow-y-auto p-4 md:p-5">
-              {cart.map((item) => (
-                <article className="rounded-[18px] border border-line bg-surface p-3" key={item.key}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="font-display text-lg font-bold text-ink">{item.item.name}</h3>
-                      {describeSelection(item) ? (
-                        <p className="mt-1 text-[11px] leading-5 text-ink-faint">
-                          {describeSelection(item)}
-                        </p>
-                      ) : null}
-                    </div>
-                    <span className="text-sm font-bold text-action tabular-nums">
-                      {formatPrice(item.unitPrice * item.quantity)}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between gap-3">
-                    <button
-                      className="inline-flex items-center gap-2 text-sm font-medium text-ink-faint hover:text-action"
-                      onClick={() => removeCartItem(item.key)}
-                      type="button"
-                    >
-                      <Trash2 aria-hidden="true" size={14} />
-                      Remover
-                    </button>
-
-                    <div className="inline-flex items-center gap-2 rounded-full border border-line bg-canvas p-1">
-                      <IconButton label="Diminuir quantidade" onClick={() => changeQuantity(item.key, -1)}>
-                        <Minus aria-hidden="true" size={14} />
-                      </IconButton>
-                      <span className="min-w-6 text-center text-sm font-semibold tabular-nums">
-                        {item.quantity}
-                      </span>
-                      <IconButton label="Aumentar quantidade" onClick={() => changeQuantity(item.key, 1)}>
-                        <Plus aria-hidden="true" size={14} />
-                      </IconButton>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="border-t border-line bg-canvas p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <div className="space-y-2 text-sm text-ink-muted">
-                <div className="flex items-center justify-between border-t border-line pt-2 text-base font-semibold text-ink">
-                  <span>Total</span>
-                  <span className="text-action">{formatPrice(cartTotal)}</span>
-                </div>
+          <div className="modal-footer"><button className="primary-button full-button" onClick={finishConfirmation}>Continuar pedindo</button></div>
+        </> : <>
+          <div className="order-tabs"><button className={view === "cart" ? "active" : ""} onClick={() => setView("cart")}>Novo pedido {cartCount > 0 && <span>{cartCount}</span>}</button>
+            <button className={view === "tab" ? "active" : ""} onClick={() => setView("tab")}>Comanda</button></div>
+          <div className="modal-scroll order-content">
+            {view === "cart" ? cart.length ? cart.map(item => <article className="order-row" key={item.key}>
+              <div className="order-row-top"><div><h3>{item.item.name}</h3><p>{[describeSelection(item), item.note].filter(Boolean).join(" · ")}</p></div><strong>{formatPrice(item.unitPrice * item.quantity)}</strong></div>
+              <div className="order-row-actions"><button className="text-button" onClick={() => removeCartItem(item.key)}><Trash2 size={14}/>Remover</button>
+                <div className="quantity-control"><button aria-label={`Diminuir ${item.item.name}`} onClick={() => changeQuantity(item.key, -1)}><Minus size={16}/></button>
+                  <span>{item.quantity}</span><button aria-label={`Aumentar ${item.item.name}`} onClick={() => changeQuantity(item.key, 1)}><Plus size={16}/></button></div>
               </div>
-
-              <Button className="mt-4 w-full justify-between" onClick={completeOrder}>
-                <span>Finalizar pedido</span>
-                <span>{formatPrice(cartTotal)}</span>
-              </Button>
-            </div>
-          </>
-        )}
+            </article>) : <div className="empty-state"><ShoppingBag size={32}/><h3>Escolha o que vai pedir</h3><p>Seus itens aparecem aqui.</p></div>
+            : tableOrders.length ? tableOrders.map(order => <section className="tab-order" key={order.id}>
+              <div className="tab-order-heading"><span>Pedido #{order.id}</span><time>{new Date(order.createdAt).toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"})}</time></div>
+              {order.items.map(item => <div className="tab-line" key={item.key}><div><h3>{item.quantity} × {item.item.name}</h3><p>{[describeSelection(item), item.note].filter(Boolean).join(" · ")}</p></div><strong>{formatPrice(item.unitPrice * item.quantity)}</strong></div>)}
+            </section>) : <div className="empty-state"><ShoppingBag size={32}/><h3>{table ? "Sua comanda está aberta" : "Selecione sua mesa"}</h3><p>{table ? "Os pedidos confirmados se acumulam aqui." : "Informe a mesa para consultar a comanda."}</p></div>}
+          </div>
+          <div className="modal-footer"><div className="order-total"><span>{view === "cart" ? "Total deste pedido" : "Total da comanda"}</span><strong>{formatPrice(view === "cart" ? cartTotal : tabTotal)}</strong></div>
+            {saveError && <p role="alert" className="save-error">{saveError}</p>}
+            {view === "cart" && cart.length ? <button className="primary-button full-button" onClick={completeOrder}>{table ? "Confirmar pedido" : "Selecionar mesa e confirmar"}</button>
+            : !table ? <button className="primary-button full-button" onClick={() => setTableOpen(true)}>Selecionar mesa</button>
+            : <button className="primary-button full-button" onClick={() => setCartOpen(false)}>Continuar pedindo</button>}
+          </div>
+        </>}
+      </Sheet>
+      <Sheet open={tableOpen} onClose={() => setTableOpen(false)} title="Qual é a sua mesa?">
+        <div className="modal-scroll table-form"><label htmlFor="table-number">Número da mesa</label>
+          <input id="table-number" type="number" min="1" max="999" inputMode="numeric" placeholder="Ex.: 12" value={tableDraft} onChange={event => setTableDraft(event.target.value)}/></div>
+        <div className="modal-footer"><button className="primary-button full-button" disabled={!/^[1-9]\d{0,2}$/.test(tableDraft)} onClick={() => {
+          setTable(tableDraft); setTableOpen(false);
+          const url = new URL(location.href); url.searchParams.set("mesa", tableDraft); window.history.replaceState(null, "", url)
+        }}>Usar esta mesa</button></div>
       </Sheet>
     </div>
   )
 }
-
 export default App
