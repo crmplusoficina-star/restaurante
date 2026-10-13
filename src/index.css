@@ -4,28 +4,28 @@
 @theme {
   --font-sans: "Inter", sans-serif;
   --font-display: "Bricolage Grotesque", sans-serif;
-  --color-canvas: #101113;
-  --color-surface: #191b1f;
-  --color-surface-raised: #23262d;
-  --color-line: rgba(255, 255, 255, 0.13);
-  --color-ink: #f4eee9;
-  --color-ink-muted: #c8bfb7;
-  --color-ink-faint: #948a82;
-  --color-ink-inverse: #fff6ef;
-  --color-action: #de6a2f;
-  --color-action-strong: #c95e28;
-  --color-action-subtle: rgba(222, 106, 47, 0.18);
-  --color-status: #2fa86b;
-  --color-status-subtle: rgba(47, 168, 107, 0.16);
-  --color-backdrop: rgba(4, 5, 7, 0.72);
-  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.32);
+  --color-canvas: #faf9f6;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f3f1ed;
+  --color-line: #e7e3dc;
+  --color-ink: #25231f;
+  --color-ink-muted: #6c675f;
+  --color-ink-faint: #817a70;
+  --color-ink-inverse: #ffffff;
+  --color-action: #bc4b25;
+  --color-action-strong: #a43e1e;
+  --color-action-subtle: #fbede6;
+  --color-status: #238550;
+  --color-status-subtle: #e7f4eb;
+  --color-backdrop: rgba(24, 22, 18, 0.45);
+  --shadow-card: 0 2px 8px rgba(40, 30, 20, 0.04);
   --shadow-dialog: 0 30px 80px rgba(0, 0, 0, 0.5);
   --radius-card: 1.25rem;
   --radius-panel: 1.5rem;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: "Inter", sans-serif;
   background: var(--color-canvas);
   color: var(--color-ink);
@@ -45,10 +45,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 85% 0%, rgba(222, 106, 47, 0.2), transparent 30%),
-    radial-gradient(circle at 0% 100%, rgba(255, 255, 255, 0.05), transparent 35%),
-    var(--color-canvas);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: "Inter", sans-serif;
 }

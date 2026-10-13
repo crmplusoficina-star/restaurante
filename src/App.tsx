@@ -1,11 +1,9 @@
 import {
   Check,
-  Clock3,
   Flame,
   Minus,
   Plus,
   ShoppingBag,
-  Star,
   Store,
   Trash2,
   X,
@@ -49,7 +47,6 @@ type MenuItem = {
   badge?: string
   available?: boolean
   spicy?: boolean
-  time: string
   optionGroups?: OptionGroup[]
 }
 
@@ -70,29 +67,6 @@ const categories: { id: CategoryId; label: string }[] = [
   { id: "drinks", label: "Bebidas" },
 ]
 
-const defaultOptions: OptionGroup[] = [
-  {
-    id: "point",
-    label: "Ponto da carne",
-    required: true,
-    defaultOptionId: "house",
-    options: [
-      { id: "house", label: "Ao ponto da casa", price: 0 },
-      { id: "well", label: "Bem passada", price: 0 },
-    ],
-  },
-  {
-    id: "extras",
-    label: "Adicionais",
-    multiple: true,
-    options: [
-      { id: "bacon", label: "Bacon crocante", price: 500 },
-      { id: "cheese", label: "Queijo extra", price: 400 },
-      { id: "jalapeno", label: "Jalapeño", price: 300 },
-    ],
-  },
-]
-
 const menuItems: MenuItem[] = [
   {
     id: "brasa-smash",
@@ -107,8 +81,6 @@ const menuItems: MenuItem[] = [
     imageAlt: "Hambúrguer artesanal com queijo e molho",
     badge: "Mais pedido",
     available: true,
-    time: "15–20 min",
-    optionGroups: defaultOptions,
   },
   {
     id: "duplo-47",
@@ -123,8 +95,6 @@ const menuItems: MenuItem[] = [
     imageAlt: "Duplo hambúrguer com queijo e picles",
     badge: "Novo",
     available: true,
-    time: "20–25 min",
-    optionGroups: defaultOptions,
   },
   {
     id: "bacon-na-chapa",
@@ -139,8 +109,6 @@ const menuItems: MenuItem[] = [
     imageAlt: "Cheeseburger com bacon e cebola caramelizada",
     badge: "Bruto",
     available: true,
-    time: "20–25 min",
-    optionGroups: defaultOptions,
   },
   {
     id: "veggie-de-rua",
@@ -155,18 +123,6 @@ const menuItems: MenuItem[] = [
     imageAlt: "Hambúrguer vegetariano com folhas e tomate",
     badge: "Esgotado",
     available: false,
-    time: "20–25 min",
-    optionGroups: [
-      {
-        id: "extras",
-        label: "Adicionais",
-        multiple: true,
-        options: [
-          { id: "cheese", label: "Queijo extra", price: 400 },
-          { id: "jalapeno", label: "Jalapeño", price: 300 },
-        ],
-      },
-    ],
   },
   {
     id: "combo-duplo",
@@ -181,9 +137,7 @@ const menuItems: MenuItem[] = [
     imageAlt: "Combo de hambúrguer com fritas e bebida",
     badge: "Economize",
     available: true,
-    time: "20–30 min",
     optionGroups: [
-      ...defaultOptions,
       {
         id: "drink",
         label: "Escolha a bebida",
@@ -209,18 +163,7 @@ const menuItems: MenuItem[] = [
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Combo de hambúrguer com fritas numa mesa",
     available: true,
-    time: "20–30 min",
     optionGroups: [
-      {
-        id: "point",
-        label: "Ponto da carne",
-        required: true,
-        defaultOptionId: "house",
-        options: [
-          { id: "house", label: "Ao ponto da casa", price: 0 },
-          { id: "well", label: "Bem passada", price: 0 },
-        ],
-      },
       {
         id: "drink",
         label: "Escolha a bebida",
@@ -247,18 +190,6 @@ const menuItems: MenuItem[] = [
     imageAlt: "Porção de batatas fritas douradas",
     badge: "Para dividir",
     available: true,
-    time: "10–15 min",
-    optionGroups: [
-      {
-        id: "sauce",
-        label: "Molho extra",
-        multiple: true,
-        options: [
-          { id: "smoked", label: "Maionese defumada", price: 250 },
-          { id: "spicy", label: "Molho picante", price: 250 },
-        ],
-      },
-    ],
   },
   {
     id: "onion-rings",
@@ -274,7 +205,6 @@ const menuItems: MenuItem[] = [
     badge: "Picante",
     spicy: true,
     available: true,
-    time: "10–15 min",
   },
   {
     id: "mate-limon",
@@ -288,7 +218,6 @@ const menuItems: MenuItem[] = [
       "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Copo de bebida gelada com limão",
     available: true,
-    time: "5 min",
     optionGroups: [
       {
         id: "size",
@@ -314,7 +243,6 @@ const menuItems: MenuItem[] = [
       "https://images.unsplash.com/photo-1622483767028-3f66f2aef2f3?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Lata de refrigerante gelada",
     available: true,
-    time: "5 min",
   },
   {
     id: "agua-com-gas",
@@ -328,7 +256,6 @@ const menuItems: MenuItem[] = [
       "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Garrafa de água com gás",
     available: true,
-    time: "5 min",
   },
 ]
 
@@ -434,14 +361,6 @@ function FoodImage({
   )
 }
 
-function Badge({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-action px-2 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-ink-inverse">
-      {children}
-    </span>
-  )
-}
-
 function Sheet({
   open,
   onClose,
@@ -520,16 +439,12 @@ function MenuCard({
   return (
     <article
       className={`flex min-h-[180px] items-stretch gap-3 rounded-[20px] border bg-surface p-3 ${
-        available ? "border-line/70 shadow-card" : "border-line/40 opacity-60"
+        available ? "border-line/70" : "border-line/40 opacity-60"
       }`}
     >
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          {item.badge ? <Badge>{item.badge}</Badge> : null}
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-faint">
-            <Clock3 aria-hidden="true" size={12} />
-            {item.time}
-          </span>
+          
           {item.spicy ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-action">
               <Flame aria-hidden="true" size={12} />
@@ -610,8 +525,7 @@ function App() {
   const draftTotal = (selectedItem?.price ?? 0) + draftOptionValues.reduce((sum, option) => sum + option.price, 0)
 
   const cartSubtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
-  const packagingFee = cart.length > 0 ? 250 : 0
-  const cartTotal = cartSubtotal + packagingFee
+  const cartTotal = cartSubtotal
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   const requiredComplete =
@@ -621,7 +535,7 @@ function App() {
     if (item.available === false) return
 
     const defaults: Record<string, string[]> = {}
-    item.optionGroups?.forEach((group) => {
+    item.optionGroups?.filter((group) => group.id === "drink" || group.id === "size").forEach((group) => {
       const defaultId = group.defaultOptionId ?? (group.required ? group.options[0]?.id : undefined)
       if (defaultId) defaults[group.id] = [defaultId]
       else defaults[group.id] = []
@@ -688,7 +602,6 @@ function App() {
     })
 
     closeItem()
-    setCartOpen(true)
   }
 
   function changeQuantity(key: string, delta: number) {
@@ -737,11 +650,11 @@ function App() {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             <span className="grid size-10 place-items-center rounded-full bg-action font-display text-sm font-black text-ink-inverse shadow-card">
-              47
+              <Flame aria-hidden="true" size={24} />
             </span>
-            <span className="font-display text-lg font-black tracking-[0.06em] text-ink">
+            <h1 className="font-display text-lg font-bold text-ink">
               BRASA 47
-            </span>
+            </h1>
           </button>
 
           <button
@@ -762,35 +675,6 @@ function App() {
 
       <main className="mx-auto max-w-screen-xl px-4 pb-20 pt-4 sm:px-6 lg:px-8">
         <section className="space-y-5">
-          <div className="relative overflow-hidden rounded-[28px] border border-line/70 bg-surface p-5 shadow-card sm:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(216,102,45,0.22),transparent_45%)]" />
-            <div className="flex items-center justify-between gap-3">
-              <div className="relative">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-faint">
-                  Cardápio
-                </p>
-                <h1 className="mt-1 font-display text-2xl font-black text-ink sm:text-3xl">
-                  Smash burgers feitos na hora
-                </h1>
-              </div>
-            </div>
-
-            <div className="relative mt-5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
-                <Clock3 aria-hidden="true" size={13} className="text-action" />
-                20–30 min
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
-                <Store aria-hidden="true" size={13} className="text-action" />
-                Retirada no balcão
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-line/70 bg-surface-raised px-2.5 py-1.5">
-                <Star aria-hidden="true" size={13} className="fill-action text-action" />
-                4,9
-              </span>
-            </div>
-          </div>
-
           <div
             aria-label="Categorias do cardápio"
             className="sticky top-[74px] z-30 -mx-4 overflow-x-auto border-y border-line/70 bg-canvas/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-[20px] lg:border lg:bg-surface/90 lg:px-3"
@@ -820,9 +704,6 @@ function App() {
 
           <div className="mt-1 flex items-end justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-action">
-                {activeCategory === "featured" ? "Seleção da casa" : "Categoria"}
-              </p>
               <h2 className="mt-1 font-display text-2xl font-black text-ink">
                 {categories.find((category) => category.id === activeCategory)?.label}
               </h2>
@@ -860,21 +741,21 @@ function App() {
             <div className="max-h-[calc(92dvh-88px)] overflow-y-auto">
               <FoodImage
                 alt={selectedItem.imageAlt}
-                className="aspect-[16/9] w-full object-cover"
+                className="h-40 w-full object-cover sm:h-48"
                 src={selectedItem.image}
               />
 
               <div className="space-y-6 p-4 md:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <p className="max-w-[70%] text-sm leading-6 text-ink-muted">
-                    {selectedItem.details}
+                    {selectedItem.shortDescription}
                   </p>
                   <span className="font-bold text-action tabular-nums">
                     {formatPrice(selectedItem.price)}
                   </span>
                 </div>
 
-                {selectedItem.optionGroups?.map((group) => (
+                {selectedItem.optionGroups?.filter((group) => group.id === "drink" || group.id === "size").map((group) => (
                   <fieldset key={group.id} className="space-y-3">
                     <legend className="flex w-full items-center justify-between text-sm font-semibold text-ink">
                       <span>{group.label}</span>
@@ -916,7 +797,7 @@ function App() {
 
                 <div>
                   <label className="mb-2 block font-semibold text-ink" htmlFor="item-note">
-                    Observação para a cozinha
+                    Observação (opcional)
                   </label>
                   <TextArea
                     id="item-note"
@@ -925,7 +806,6 @@ function App() {
                     placeholder="Sem cebola, molho à parte ..."
                     value={note}
                   />
-                  <div className="mt-1 text-right text-[11px] text-ink-faint">{note.length}/120</div>
                 </div>
               </div>
             </div>
@@ -958,7 +838,7 @@ function App() {
                 #{orderNumber}
               </h3>
               <p className="mt-3 text-sm leading-6 text-ink-muted">
-                Estimativa de 20–30 minutos. Pagamento na retirada. Esta é uma demonstração local sem transação real.
+                Este pedido é uma demonstração e não foi enviado ao restaurante.
               </p>
             </div>
             <Button className="w-full" onClick={finishConfirmation}>
@@ -1027,14 +907,6 @@ function App() {
 
             <div className="border-t border-line bg-canvas p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <div className="space-y-2 text-sm text-ink-muted">
-                <div className="flex items-center justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(cartSubtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Embalagem</span>
-                  <span>{formatPrice(packagingFee)}</span>
-                </div>
                 <div className="flex items-center justify-between border-t border-line pt-2 text-base font-semibold text-ink">
                   <span>Total</span>
                   <span className="text-action">{formatPrice(cartTotal)}</span>
