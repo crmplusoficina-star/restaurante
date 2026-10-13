@@ -38,7 +38,7 @@ function Details({ item, close, add, blocked }: { item: MenuItem; close: () => v
       {item.optionGroups?.map(group => <fieldset className="option-info" key={group.id}><legend>{group.label}{group.required && <span>Obrigatório</span>}</legend>{group.options.map(option => <label className="option-choice" key={option.id}><span><input type={group.multiple ? "checkbox" : "radio"} name={group.id} checked={selections[group.id]?.includes(option.id) ?? false} onChange={() => setSelections(current => ({ ...current, [group.id]: group.multiple ? current[group.id]?.includes(option.id) ? current[group.id].filter(id => id !== option.id) : [...(current[group.id] ?? []), option.id] : [option.id] }))}/>{option.label.replace(" + R$ 2,00", "")}</span><span>{option.price ? `+ ${money(option.price)}` : "Incluso"}</span></label>)}</fieldset>)}
       <label className="note-label" htmlFor="item-note">Observação <span>opcional</span></label><textarea id="item-note" maxLength={120} value={note} onChange={event => setNote(event.target.value)} placeholder="Sem cebola, molho à parte..." />
       <div className="allergen-note"><Utensils size={18} /><p>Tem alguma restrição alimentar? Consulte a equipe sobre ingredientes e alergênicos antes de escolher.</p></div>
-      {blocked && <p className="bill-status">Conta solicitada. Novos pedidos estão bloqueados.</p>}
+      {blocked && <p className="bill-status">Esta comanda não aceita novos pedidos.</p>}
       <div className="add-item-footer"><div className="quantity-control"><button onClick={() => setQuantity(value => Math.max(1, value - 1))} disabled={quantity === 1} aria-label="Diminuir quantidade"><Minus size={17}/></button><span>{quantity}</span><button onClick={() => setQuantity(value => Math.min(99, value + 1))} disabled={quantity === 99} aria-label="Aumentar quantidade"><Plus size={17}/></button></div><button className="back-button" disabled={!complete || blocked || item.available === false} onClick={addItem}><span>Adicionar ao pedido</span><strong>{money(unitPrice * quantity)}</strong></button></div>
     </div>
   </dialog>
@@ -52,12 +52,18 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [comanda, setComanda] = useState(readComanda)
+  const previousSession = useRef(comanda.sessionId)
+  useEffect(() => {
+    if (previousSession.current !== comanda.sessionId) { setCart([]); setSelected(null) }
+    previousSession.current = comanda.sessionId
+  }, [comanda.sessionId])
   const [orderView, setOrderView] = useState<"cart" | "tab" | null>(null)
   const [notice, setNotice] = useState("")
   useEffect(() => {
     const refresh = () => setComanda(readComanda())
     window.addEventListener("storage", refresh)
-    return () => window.removeEventListener("storage", refresh)
+    window.addEventListener("brasa:change", refresh)
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("brasa:change", refresh) }
   }, [])
   useEffect(() => {
     if (!notice) return
@@ -68,7 +74,7 @@ export default function App() {
   const cartTotal = cart.reduce((sum, row) => sum + row.unitPrice * row.quantity, 0)
   const tabTotal = comanda.orders.reduce((sum, order) => sum + order.items.reduce((total, row) => total + row.unitPrice * row.quantity, 0), 0)
   function addToCart(row: CartItem) {
-    if (comanda.billRequested) return
+    if (comanda.status !== "open") return
     setCart(current => current.some(item => item.key === row.key) ? current.map(item => item.key === row.key ? { ...item, quantity: item.quantity + row.quantity } : item) : [...current, row])
     setNotice(row.item.name + " adicionado ao pedido")
   }
@@ -97,7 +103,7 @@ export default function App() {
             <div className="card-image"><FoodImage item={item} eager={index < 4}/>{item.badge && <span className={item.available === false ? "badge sold-out" : "badge"}>{item.badge === "Bruto" ? "Bacon crocante" : item.badge}</span>}</div>
             <div className="card-body"><h3>{item.name}</h3><p>{item.shortDescription}</p><div className="card-bottom"><strong>{money(item.price)}</strong><span className="detail-arrow"><ChevronRight size={18}/></span></div></div>
           </button>
-          <button className="card-add-button" disabled={item.available === false || comanda.billRequested} onClick={() => setSelected(item)} aria-label={`Adicionar ${item.name}`}><Plus size={14}/>{item.available === false ? "Esgotado" : "Adicionar"}</button>
+          <button className="card-add-button" disabled={item.available === false || comanda.status !== "open"} onClick={() => setSelected(item)} aria-label={`Adicionar ${item.name}`}><Plus size={14}/>{item.available === false ? "Esgotado" : "Adicionar"}</button>
           <button className={favorites.includes(item.id) ? "favorite-button saved" : "favorite-button"} aria-label={`${favorites.includes(item.id) ? "Remover" : "Salvar"} ${item.name} ${favorites.includes(item.id) ? "dos" : "nos"} favoritos`} aria-pressed={favorites.includes(item.id)} onClick={() => toggleFavorite(item.id)}><Heart size={17} fill={favorites.includes(item.id) ? "currentColor" : "none"}/></button>
         </article>)}</div>
         {products.length === 0 && <div className="empty-state">{view === "favorites" ? <Heart size={32}/> : <Search size={32}/>}<h3>{view === "favorites" && !favorites.length ? "Seus favoritos ficam aqui" : "Nenhuma opção encontrada"}</h3><p>{view === "favorites" && !favorites.length ? "Toque no coração de um prato para guardar sua escolha." : "Tente outro nome ou explore as categorias."}</p><button onClick={() => { setQuery(""); setCategory("featured"); setAvailableOnly(false); setView("menu") }}>Explorar cardápio</button></div>}
@@ -113,6 +119,6 @@ export default function App() {
       <button className={view === "favorites" ? "active" : ""} aria-current={view === "favorites" ? "page" : undefined} onClick={() => { setView("favorites"); setQuery("") }}><Heart size={21}/><span>Favoritos</span></button>
     </nav>
     {orderView && <OrderPanel initialView={orderView} close={() => setOrderView(null)} cart={cart} setCart={setCart} comanda={comanda} setComanda={setComanda}/>}
-    {selected && <Details key={selected.id} item={selected} close={() => setSelected(null)} add={addToCart} blocked={comanda.billRequested} />}
+    {selected && <Details key={selected.id} item={selected} close={() => setSelected(null)} add={addToCart} blocked={comanda.status !== "open"} />}
   </div>
 }
