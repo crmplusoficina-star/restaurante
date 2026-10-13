@@ -453,6 +453,8 @@ function MenuCard({item, onSelect}: {item: MenuItem; onSelect: (item: MenuItem) 
     </div>
   </article>
 }
+// Explicitly local while this app is a draft. Production never falls back to this mode.
+const DRAFT_MODE = true
 function App() {
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState<CategoryId>("featured")
@@ -462,10 +464,24 @@ function App() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
 
+  const draftTable = new URLSearchParams(location.search).get("mesa")?.trim().slice(0,40) || "1"
+  const draftStorageKey = "brasa47:draft:comanda:v1:" + draftTable
+  function readDraftComanda(): ComandaState {
+    const empty: ComandaState = {table:draftTable,sessionId:"draft-"+draftTable,status:"open",billRequested:false,orders:[]}
+    try {
+      const saved = JSON.parse(localStorage.getItem(draftStorageKey) || "null") as ComandaState | null
+      if (saved && saved.table === draftTable && saved.sessionId === empty.sessionId &&
+          ["open","bill_requested"].includes(saved.status) && Array.isArray(saved.orders) &&
+          saved.orders.every(order => Number.isFinite(order.id) && Array.isArray(order.items) &&
+            order.items.every(row => row.item && typeof row.item.name === "string" &&
+              Number.isFinite(row.unitPrice) && Number.isFinite(row.quantity)))) return saved
+    } catch { /* Start with an empty local tab if the saved data cannot be read. */ }
+    return empty
+  }
   const qrToken = new URLSearchParams(location.search).get("token") ?? ""
   const [backend, setBackend] = useState<BackendConfig | null>(null)
-  const [menu, setMenu] = useState<RestaurantMenu>({ name: "BRASA 47", orderingEnabled: false, servicePercent: 0, paymentMethods: [], products: menuItems })
-  const [comanda, setComanda] = useState<ComandaState>({table:"",sessionId:null,status:"closed",billRequested:false,orders:[]})
+  const [menu, setMenu] = useState<RestaurantMenu>({ name: "BRASA 47", orderingEnabled: DRAFT_MODE, servicePercent: 0, paymentMethods: [], products: menuItems })
+  const [comanda, setComanda] = useState<ComandaState>(() => DRAFT_MODE ? readDraftComanda() : {table:"",sessionId:null,status:"closed",billRequested:false,orders:[]})
   const [connectionError, setConnectionError] = useState("")
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -478,10 +494,11 @@ function App() {
   const tabSubtotal = tableOrders.reduce((sum, order) => sum + order.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0), 0)
   const serviceFee = Math.round(tabSubtotal * menu.servicePercent / 100)
   const tabTotal = tabSubtotal + serviceFee
-  const canOrder = Boolean(backend && !connectionError && menu.orderingEnabled && comanda.sessionId && comanda.status === "open")
-  const orderBlockReason = connectionError || (loading ? "Carregando a mesa…" : !backend ? "Pedidos indisponíveis no momento." : !qrToken ? "Para enviar o pedido, abra o QR code da sua mesa." : !comanda.sessionId || comanda.status === "closed" ? "A comanda desta mesa está fechada. Solicite a abertura ao atendente." : comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : !menu.orderingEnabled ? "O restaurante não está recebendo pedidos." : "")
+  const canOrder = Boolean((DRAFT_MODE || backend) && !connectionError && menu.orderingEnabled && comanda.sessionId && comanda.status === "open")
+  const orderBlockReason = DRAFT_MODE ? (comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : "") : connectionError || (loading ? "Carregando a mesa…" : !backend ? "Pedidos indisponíveis no momento." : !qrToken ? "Para enviar o pedido, abra o QR code da sua mesa." : !comanda.sessionId || comanda.status === "closed" ? "A comanda desta mesa está fechada. Solicite a abertura ao atendente." : comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : !menu.orderingEnabled ? "O restaurante não está recebendo pedidos." : "")
   useEffect(() => { requestId.current = null }, [cart])
   useEffect(() => {
+    if (DRAFT_MODE) { setLoading(false); return }
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | undefined
     async function refresh(config: BackendConfig) {
@@ -652,7 +669,19 @@ function App() {
 
 
   async function completeOrder() {
-    if (!cart.length || !canOrder || !backend || submitting) return
+    if (!cart.length || !canOrder || submitting) return
+    if (DRAFT_MODE) {
+      try {
+        const current = readDraftComanda()
+        if (current.status !== "open") { setComanda(current); return }
+        const id = Math.max(0, ...current.orders.map(order => order.id)) + 1
+        const next: ComandaState = {...current, orders:[...current.orders, {id,table:draftTable,items:cart,createdAt:new Date().toISOString(),status:"received"}]}
+        localStorage.setItem(draftStorageKey,JSON.stringify(next))
+        setComanda(next); setCart([]); setOrderNumber(id); setSaveError("")
+      } catch { setSaveError("Não foi possível salvar o pedido neste navegador. Verifique o armazenamento e tente novamente.") }
+      return
+    }
+    if (!backend) return
     setSubmitting(true); setSaveError("")
     requestId.current ??= crypto.randomUUID()
     try {
@@ -666,6 +695,16 @@ function App() {
     finally { setSubmitting(false) }
   }
   async function requestBill() {
+    if (DRAFT_MODE) {
+      try {
+        const current = readDraftComanda()
+        if (!current.orders.length) return
+        const next: ComandaState = {...current,status:"bill_requested",billRequested:true}
+        localStorage.setItem(draftStorageKey,JSON.stringify(next))
+        setComanda(next); setBillConfirm(false); setSaveError("")
+      } catch { setSaveError("Não foi possível salvar a solicitação neste navegador.") }
+      return
+    }
     if (!backend || !comanda.sessionId || submitting) return
     setSubmitting(true); setSaveError("")
     try {
@@ -809,7 +848,7 @@ function App() {
       <Sheet open={cartOpen} onClose={() => setCartOpen(false)} title={table ? `Mesa ${table}` : "Seu pedido"}>
         {orderNumber ? <>
           <div className="modal-scroll confirmation">
-            <span className="confirmation-icon"><Check size={30}/></span><h3>Pedido recebido</h3><p>Pedido #{orderNumber}</p>
+            <span className="confirmation-icon"><Check size={30}/></span><h3>Pedido confirmado</h3><p>Pedido #{orderNumber}</p>
             <div className="confirmation-total"><span>Total da mesa</span><strong>{formatPrice(tabTotal)}</strong></div>
           </div>
           <div className="modal-footer"><button className="primary-button full-button" onClick={finishConfirmation}>Continuar pedindo</button></div>
@@ -840,7 +879,7 @@ function App() {
             {view === "cart" && cart.length ? <button className="primary-button full-button" disabled={!canOrder || submitting} onClick={() => void completeOrder()}>{submitting ? "Enviando…" : "Confirmar pedido"}</button>
             : view === "tab" && tableOrders.length ? <>
               {billConfirm ? <div className="bill-confirm"><p>Solicitar o fechamento desta comanda?</p><div><button className="primary-button" disabled={submitting} onClick={() => void requestBill()}>{submitting ? "Solicitando…" : "Sim, pedir conta"}</button><button className="text-button" disabled={submitting} onClick={() => setBillConfirm(false)}>Voltar</button></div></div>
-              : <button className="primary-button full-button" disabled={!backend || Boolean(connectionError) || comanda.billRequested || comanda.status !== "open" || submitting} onClick={() => setBillConfirm(true)}>{comanda.billRequested ? "Conta solicitada" : "Pedir conta"}</button>}
+              : <button className="primary-button full-button" disabled={(!DRAFT_MODE && !backend) || Boolean(connectionError) || comanda.billRequested || comanda.status !== "open" || submitting} onClick={() => setBillConfirm(true)}>{comanda.billRequested ? "Conta solicitada" : "Pedir conta"}</button>}
             </> : <button className="primary-button full-button" onClick={() => setCartOpen(false)}>Voltar ao cardápio</button>}
           </div>
         </>}
