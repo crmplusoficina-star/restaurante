@@ -1,3 +1,4 @@
+import { loadBackendConfig, rpc, type BackendConfig } from "./backend"
 import {
   Check,
   Flame,
@@ -42,6 +43,9 @@ type MenuItem = {
   name: string
   shortDescription: string
   details: string
+  ingredients?: string[]
+  allergens?: string[]
+  allergenInfoConfirmed?: boolean
   price: number
   image: string
   imageAlt: string
@@ -363,17 +367,9 @@ function FoodImage({
 }
 
 
-type TableOrder = { id: number; table: string; items: CartItem[]; createdAt: string }
-const storageKey = "brasa47:orders:v1"
-function readOrders(): TableOrder[] {
-  try {
-    const rows: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "[]")
-    return Array.isArray(rows) ? rows.filter((row): row is TableOrder => row &&
-      Number.isInteger(row.id) && typeof row.table === "string" && Array.isArray(row.items) &&
-      row.items.every((item: CartItem) => item?.item && typeof item.item.name === "string" &&
-        Number.isFinite(item.unitPrice) && Number.isInteger(item.quantity) && item.quantity > 0)) : []
-  } catch { return [] }
-}
+type TableOrder = { id: number; table: string; items: CartItem[]; createdAt: string; status?: string }
+type ComandaState = { table: string; sessionId: string | null; status: "open" | "bill_requested" | "closed"; billRequested: boolean; orders: TableOrder[] }
+type RestaurantMenu = { name: string; orderingEnabled: boolean; servicePercent: number; paymentMethods: string[]; products: MenuItem[] }
 
 function Sheet({
   open,
@@ -458,30 +454,80 @@ function MenuCard({item, onSelect}: {item: MenuItem; onSelect: (item: MenuItem) 
   </article>
 }
 function App() {
+  const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState<CategoryId>("featured")
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [selections, setSelections] = useState<Record<string, string[]>>({})
   const [note, setNote] = useState("")
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
-  const [table] = useState(() => {
-    const value = new URLSearchParams(location.search).get("mesa") ?? ""
-    return /^[1-9]\d{0,2}$/.test(value) ? value : ""
-  })
+
+  const qrToken = new URLSearchParams(location.search).get("token") ?? ""
+  const [backend, setBackend] = useState<BackendConfig | null>(null)
+  const [menu, setMenu] = useState<RestaurantMenu>({ name: "BRASA 47", orderingEnabled: false, servicePercent: 0, paymentMethods: [], products: menuItems })
+  const [comanda, setComanda] = useState<ComandaState>({table:"",sessionId:null,status:"closed",billRequested:false,orders:[]})
+  const [connectionError, setConnectionError] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [billConfirm, setBillConfirm] = useState(false)
+  const requestId = useRef<string | null>(null)
   const [view, setView] = useState<"cart" | "tab">("cart")
   const [saveError, setSaveError] = useState("")
-  const [orders, setOrders] = useState<TableOrder[]>(readOrders)
-  const tableOrders = orders.filter(order => order.table === table)
-  const tabTotal = tableOrders.reduce((sum, order) => sum + order.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0), 0)
+  const table = comanda.table
+  const tableOrders = comanda.orders
+  const tabSubtotal = tableOrders.reduce((sum, order) => sum + order.items.reduce((s, item) => s + item.quantity * item.unitPrice, 0), 0)
+  const serviceFee = Math.round(tabSubtotal * menu.servicePercent / 100)
+  const tabTotal = tabSubtotal + serviceFee
+  const canOrder = Boolean(backend && !connectionError && menu.orderingEnabled && comanda.sessionId && comanda.status === "open")
+  useEffect(() => { requestId.current = null }, [cart])
+  useEffect(() => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    async function refresh(config: BackendConfig) {
+      try {
+        const nextMenu = await rpc<RestaurantMenu>(config, "customer_menu", {p_restaurant_id:config.restaurantId})
+        if (!nextMenu) throw new Error("Cardápio indisponível.")
+        const nextComanda = qrToken ? await rpc<ComandaState>(config, "customer_comanda", {p_restaurant_id:config.restaurantId,p_qr_token:qrToken}) : null
+        if (!cancelled) {
+          setMenu(nextMenu)
+          if (nextComanda) setComanda(nextComanda)
+          setConnectionError("")
+        }
+      } catch(error) { if (!cancelled) setConnectionError(error instanceof Error ? error.message : "Conexão indisponível.") }
+      finally {
+        if (!cancelled) { setLoading(false); timer = setTimeout(() => { void refresh(config) }, 5000) }
+      }
+    }
+    void loadBackendConfig().then(config => {
+      if (cancelled) return
+      setBackend(config)
+      if (config) void refresh(config)
+      else setLoading(false)
+    }).catch(() => { if (!cancelled) { setConnectionError("Não foi possível conectar ao restaurante."); setLoading(false) } })
+    return () => { cancelled = true; if(timer) clearTimeout(timer) }
+  }, [qrToken])
+  async function refreshComanda() {
+    if (!backend || !qrToken) return
+    const next = await rpc<ComandaState>(backend,"customer_comanda",{p_restaurant_id:backend.restaurantId,p_qr_token:qrToken})
+    setComanda(next)
+  }
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
+  const previousSession = useRef<string | null>(null)
+  useEffect(() => {
+    if (previousSession.current && previousSession.current !== comanda.sessionId) {
+      setCart([]); setOrderNumber(null); setBillConfirm(false); setSaveError("")
+    }
+    previousSession.current = comanda.sessionId
+  }, [comanda.sessionId])
 
-  const visibleItems = useMemo(
-    () =>
-      activeCategory === "featured"
-        ? menuItems.filter((item) => item.badge || item.name.includes("Brasa"))
-        : menuItems.filter((item) => item.category === activeCategory),
-    [activeCategory],
-  )
+
+  const visibleItems = useMemo(() => {
+    const query = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+    return menu.products.filter(item => {
+      if (query) return (item.name + " " + item.shortDescription + " " + (item.ingredients ?? []).join(" ")).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().includes(query)
+      return activeCategory === "featured" ? item.badge || item.name.includes("Brasa") : item.category === activeCategory
+    })
+  }, [activeCategory, search, menu.products])
 
   const draftOptionValues = useMemo(() => {
     if (!selectedItem) return [] as MenuOption[]
@@ -543,7 +589,7 @@ function App() {
   }
 
   function addSelectedToCart() {
-    if (!selectedItem || !requiredComplete) return
+    if (!selectedItem || !requiredComplete || submitting) return
 
     const selectionKey = Object.entries(selections)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -578,6 +624,7 @@ function App() {
   }
 
   function changeQuantity(key: string, delta: number) {
+    if(submitting) return
     setCart((current) =>
       current
         .map((item) =>
@@ -588,6 +635,7 @@ function App() {
   }
 
   function removeCartItem(key: string) {
+    if(submitting) return
     setCart((current) => current.filter((item) => item.key !== key))
   }
 
@@ -601,17 +649,32 @@ function App() {
       .join(" • ")
   }
 
-  function completeOrder() {
-    if (cart.length === 0) return
-    if (!table) return
-    const latest = readOrders()
-    const id = latest.reduce((max, row) => Math.max(max, row.id), 0) + 1
-    const next = [...latest, { id, table, items: cart, createdAt: new Date().toISOString() }]
-    try { localStorage.setItem(storageKey, JSON.stringify(next)) }
-    catch { setSaveError("Não foi possível salvar a comanda. Tente novamente."); return }
-    setOrders(next); setCart([]); setSaveError(""); setOrderNumber(id)
-  }
 
+  async function completeOrder() {
+    if (!cart.length || !canOrder || !backend || submitting) return
+    setSubmitting(true); setSaveError("")
+    requestId.current ??= crypto.randomUUID()
+    try {
+      const result = await rpc<{id:number}>(backend,"customer_submit_order",{
+        p_restaurant_id:backend.restaurantId,p_qr_token:qrToken,p_session_id:comanda.sessionId,p_request_id:requestId.current,
+        p_items:cart.map(row => ({productId:row.item.id,key:row.key,selections:row.selections,note:row.note,quantity:row.quantity}))
+      })
+      setCart([]); setOrderNumber(result.id)
+      await refreshComanda()
+    } catch(error) { setSaveError(error instanceof Error ? error.message : "Não foi possível enviar o pedido.") }
+    finally { setSubmitting(false) }
+  }
+  async function requestBill() {
+    if (!backend || !comanda.sessionId || submitting) return
+    setSubmitting(true); setSaveError("")
+    try {
+      await rpc(backend,"customer_request_bill",{p_restaurant_id:backend.restaurantId,p_qr_token:qrToken,p_session_id:comanda.sessionId})
+      setComanda(current => ({...current,status:"bill_requested",billRequested:true}))
+      setBillConfirm(false)
+      await refreshComanda()
+    } catch(error) { setSaveError(error instanceof Error ? error.message : "Não foi possível pedir a conta.") }
+    finally { setSubmitting(false) }
+  }
   function finishConfirmation() {
     setOrderNumber(null)
     setCartOpen(false)
@@ -623,9 +686,10 @@ function App() {
     <div className="restaurant-app">
       <main id="cardapio" className="menu-shell">
         <div className="menu-identity">
-          <div className="restaurant-brand"><Flame size={24} aria-hidden="true"/><h1>BRASA 47</h1></div>
+          <div className="restaurant-brand"><Flame size={24} aria-hidden="true"/><h1>{menu.name}</h1></div>
           <span className="app-name">Mesa</span>
         </div>
+        <div className="menu-search"><label htmlFor="menu-search">Buscar no cardápio</label><input id="menu-search" type="search" placeholder="Buscar produto ou ingrediente" value={search} onChange={event => setSearch(event.target.value)}/></div>
         <div className="menu-toolbar">
           <nav className="category-nav" aria-label="Categorias do cardápio">
             {categories.map(category => <button key={category.id} aria-pressed={activeCategory === category.id}
@@ -637,7 +701,10 @@ function App() {
             <button className="tab-link" onClick={() => { setView("tab"); setOrderNumber(null); setCartOpen(true) }}>Minha comanda <span>{formatPrice(tabTotal)}</span></button>
           </div>
         </div>
-        <div className="section-heading"><h2>{categories.find(category => category.id === activeCategory)?.label}</h2><span>{visibleItems.length} opções</span></div>
+        <div className="section-heading"><h2>{search.trim() ? "Resultados da busca" : categories.find(category => category.id === activeCategory)?.label}</h2><span>{visibleItems.length} opções</span></div>
+        {loading && <p className="menu-notice" role="status">Carregando cardápio…</p>}
+        {!loading && !canOrder && <p className="menu-notice" role="status">{connectionError || (comanda.billRequested ? "Conta solicitada. Novos pedidos estão bloqueados." : !qrToken && backend ? "Abra o QR code da sua mesa para pedir." : "Pedidos indisponíveis no momento.")}</p>}
+        {!visibleItems.length && <p className="menu-notice">Nenhum produto encontrado.</p>}
         <div className="food-grid">{visibleItems.map(item => <MenuCard key={item.id} item={item} onSelect={openItem}/>)}</div>
       </main>
       <Sheet open={Boolean(selectedItem)} onClose={closeItem} title={selectedItem?.name ?? "Detalhes do item"}>
@@ -700,6 +767,12 @@ function App() {
                   </fieldset>
                 ))}
 
+                <div className="ingredient-info">
+                  <h3>Ingredientes</h3>
+                  <p>{selectedItem.ingredients?.length ? selectedItem.ingredients.join(", ") : selectedItem.details}</p>
+                  <h3>Alergênicos</h3>
+                  <p>{selectedItem.allergenInfoConfirmed ? selectedItem.allergens?.length ? selectedItem.allergens.join(", ") : "Nenhum alergênico informado pelo restaurante." : "Informações não cadastradas. Consulte a equipe antes de pedir."}</p>
+                </div>
                 <div>
                   <label className="mb-2 block font-semibold text-ink" htmlFor="item-note">
                     Observação (opcional)
@@ -718,7 +791,7 @@ function App() {
             <div className="modal-footer">
               <Button
                 className="w-full justify-between gap-3"
-                disabled={!requiredComplete}
+                disabled={!requiredComplete || !canOrder}
                 onClick={addSelectedToCart}
               >
                 <span>Adicionar ao pedido</span>
@@ -733,7 +806,7 @@ function App() {
       <Sheet open={cartOpen} onClose={() => setCartOpen(false)} title={table ? `Mesa ${table}` : "Seu pedido"}>
         {orderNumber ? <>
           <div className="modal-scroll confirmation">
-            <span className="confirmation-icon"><Check size={30}/></span><h3>Adicionado à comanda</h3><p>Pedido #{orderNumber}</p>
+            <span className="confirmation-icon"><Check size={30}/></span><h3>Pedido recebido</h3><p>Pedido #{orderNumber}</p>
             <div className="confirmation-total"><span>Total da mesa</span><strong>{formatPrice(tabTotal)}</strong></div>
           </div>
           <div className="modal-footer"><button className="primary-button full-button" onClick={finishConfirmation}>Continuar pedindo</button></div>
@@ -753,11 +826,19 @@ function App() {
               {order.items.map(item => <div className="tab-line" key={item.key}><div><h3>{item.quantity} × {item.item.name}</h3><p>{[describeSelection(item), item.note].filter(Boolean).join(" · ")}</p></div><strong>{formatPrice(item.unitPrice * item.quantity)}</strong></div>)}
             </section>) : <div className="empty-state"><ShoppingBag size={32}/><h3>{table ? "Sua comanda está aberta" : "Cardápio"}</h3><p>{table ? "Os pedidos confirmados se acumulam aqui." : "A comanda é vinculada ao QR code da mesa."}</p></div>}
           </div>
-          <div className="modal-footer"><div className="order-total"><span>{view === "cart" ? "Total deste pedido" : "Total da comanda"}</span><strong>{formatPrice(view === "cart" ? cartTotal : tabTotal)}</strong></div>
+
+          <div className="modal-footer">
+            {view === "tab" && serviceFee > 0 && <div className="service-line"><span>Consumo</span><span>{formatPrice(tabSubtotal)}</span></div>}
+            {view === "tab" && serviceFee > 0 && <div className="service-line"><span>Serviço ({menu.servicePercent}%)</span><span>{formatPrice(serviceFee)}</span></div>}
+            <div className="order-total"><span>{view === "cart" ? "Total deste pedido" : "Total da comanda"}</span><strong>{formatPrice(view === "cart" ? cartTotal : tabTotal)}</strong></div>
+            {menu.paymentMethods.length > 0 && view === "tab" && <p className="payment-info">Pagamento: {menu.paymentMethods.join(" · ")}</p>}
             {saveError && <p role="alert" className="save-error">{saveError}</p>}
-            {!table && <p className="table-link-message">Abra o cardápio pelo QR code da sua mesa para pedir.</p>}
-            {view === "cart" && cart.length ? <button className="primary-button full-button" disabled={!table} onClick={completeOrder}>Confirmar pedido</button>
-            : <button className="primary-button full-button" onClick={() => setCartOpen(false)}>Continuar pedindo</button>}
+            {!canOrder && view === "cart" && <p className="table-link-message">{comanda.billRequested ? "Conta solicitada." : "Pedidos indisponíveis no momento."}</p>}
+            {view === "cart" && cart.length ? <button className="primary-button full-button" disabled={!canOrder || submitting} onClick={() => void completeOrder()}>{submitting ? "Enviando…" : "Confirmar pedido"}</button>
+            : view === "tab" && tableOrders.length ? <>
+              {billConfirm ? <div className="bill-confirm"><p>Solicitar o fechamento desta comanda?</p><div><button className="primary-button" disabled={submitting} onClick={() => void requestBill()}>{submitting ? "Solicitando…" : "Sim, pedir conta"}</button><button className="text-button" disabled={submitting} onClick={() => setBillConfirm(false)}>Voltar</button></div></div>
+              : <button className="primary-button full-button" disabled={!backend || Boolean(connectionError) || comanda.billRequested || comanda.status !== "open" || submitting} onClick={() => setBillConfirm(true)}>{comanda.billRequested ? "Conta solicitada" : "Pedir conta"}</button>}
+            </> : <button className="primary-button full-button" onClick={() => setCartOpen(false)}>Voltar ao cardápio</button>}
           </div>
         </>}
       </Sheet>
@@ -765,3 +846,4 @@ function App() {
   )
 }
 export default App
+

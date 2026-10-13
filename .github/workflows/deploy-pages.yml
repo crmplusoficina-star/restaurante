@@ -36,6 +36,9 @@ jobs:
       - name: Instalar dependências
         run: pnpm install --no-frozen-lockfile
 
+      - name: Validar funções do cardápio
+        run: pnpm test
+
       - name: Gerar build
         run: pnpm run build
 
@@ -63,3 +66,4 @@ jobs:
       - name: Publicar no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+

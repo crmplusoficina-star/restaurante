@@ -230,3 +230,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
 .page-order-actions .tab-link{margin:0}
 .inline-order-button{align-items:flex-start;flex-direction:row;gap:8px}
 }
+
+.menu-search{max-width:420px;margin:0 0 22px}.menu-search label{display:block;font-size:11px;color:#a4b2a7;margin-bottom:8px}
+.menu-search input{width:100%;padding:12px 14px;border:1px solid #ffffff20;border-radius:10px;color:#f6f2e9;background:#ffffff05;font-size:13px}
+.menu-notice{font-size:12px;color:#b7c2b6;margin:12px 0 20px}
+.ingredient-info h3{font-size:13px;margin:16px 0 6px;font-weight:600}.ingredient-info p{color:#aeb9af}
+.service-line{display:flex;justify-content:space-between;font-size:12px;color:#a8b5ab;margin-bottom:10px}
+.payment-info{font-size:11px;color:#a8b5ab;margin:0 0 14px}
+.bill-confirm p{font-size:12px;color:#d2dbcb;margin:0 0 14px}.bill-confirm>div{display:flex;gap:16px}
+
