@@ -2,7 +2,15 @@
 
 Este repositório contém apenas o app usado pelo cliente na mesa. Os apps de cozinha, atendente e administrador serão separados.
 
-## Ativação no Supabase
+## Estado atual: rascunho local
+
+O cardápio publicado está em modo local (`DRAFT_MODE = true` em `src/App.tsx`). Não consulta nem grava no Supabase. Confirmar pedido acrescenta os itens à comanda no armazenamento deste navegador, separado pelo parâmetro `?mesa=5`; sem parâmetro, utiliza a mesa 1 no rascunho. Não há seletor de mesa para o cliente.
+
+Pedir conta também é local e bloqueia novos pedidos dessa comanda. Os dados sobrevivem ao recarregamento, mas não são compartilhados entre celulares. O fluxo não envia pedidos para a cozinha.
+
+A estrutura existente no projeto Artemis foi preservada. A futura ativação exige definir `DRAFT_MODE = false`, preencher a conexão abaixo e cadastrar mesas e sessões. Não use o modo local como fallback de falhas em produção.
+
+## Ativação futura no Supabase
 
 1. Execute `supabase/customer-menu.sql` no SQL Editor do projeto.
 2. Execute `supabase/seed-menu.sql` para cadastrar o catálogo inicial. O seed preserva registros existentes.
